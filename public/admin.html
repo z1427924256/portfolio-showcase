@@ -629,14 +629,14 @@ $('pdf-upload').addEventListener('click', async () => {
       // 渲染第 i 页
       const page = await doc.getPage(i);
       const vp1 = page.getViewport({ scale: 1 });
-      let scale = Math.min(2000 / vp1.width, Math.sqrt(12e6 / (vp1.width * vp1.height)), 4);
+      let scale = Math.min(1280 / vp1.width, Math.sqrt(8e6 / (vp1.width * vp1.height)), 4);
       if (scale < 0.05) scale = 0.05;
       const vp = page.getViewport({ scale });
       const canvas = document.createElement('canvas');
       canvas.width = Math.floor(vp.width);
       canvas.height = Math.floor(vp.height);
       await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-      const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.88));
+      const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.72));
       if (!blob) throw new Error('第 ' + i + ' 页渲染失败');
       if (blob.size > 8 * 1024 * 1024) throw new Error('第 ' + i + ' 页图片过大');
       dims[i - 1] = { w: canvas.width, h: canvas.height };
