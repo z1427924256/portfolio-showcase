@@ -111,6 +111,12 @@
   }
   .btn-save:hover { background: #3a3a3c; }
   .btn-save:disabled { background: #b0b0b5; cursor: not-allowed; }
+  .btn-danger {
+    padding: 9px 22px; background: #fff; color: #e02020; border: 1px solid #ffcdd2;
+    border-radius: 8px; font-size: 14px;
+  }
+  .btn-danger:hover { background: #e02020; color: #fff; border-color: #e02020; }
+  .btn-danger:disabled { opacity: .5; cursor: not-allowed; }
   .ok-msg { color: #34c759; font-size: 13px; margin-left: 10px; }
 
   /* 统计 */
@@ -336,7 +342,7 @@
     <!-- 文件管理 -->
     <div class="panel" id="panel-files">
       <div class="card">
-        <h2>作品集 PDF</h2>
+        <h2>作品集管理 <span class="tag">上传 / 替换 / 删除</span></h2>
         <div class="file-info" id="pdf-info">未上传</div>
         <div class="file-row" style="margin-top:14px">
           <input type="file" id="pdf-file" accept="application/pdf,.pdf">
@@ -347,6 +353,14 @@
         <div class="file-info" style="margin-top:8px;color:#a0a0a6" id="pdf-upload-status"></div>
         <div class="file-info" style="margin-top:14px;color:#a0a0a6">
           上传时会自动把每页转成高清图片，前台秒开。首次上传大文件需要几分钟，请耐心等待进度完成。
+        </div>
+      </div>
+      <div class="card" id="delete-card" style="display:none">
+        <h2>删除作品集 <span class="tag">清除所有图片和 PDF，保留设置</span></h2>
+        <p style="font-size:13px;color:#86868b;margin-bottom:14px">删除后前台将无法访问作品集，站点设置（标题、联系方式、二维码）不受影响。</p>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="btn-danger" id="pdf-delete">删除当前作品集</button>
+          <span class="ok-msg" id="delete-msg" style="color:#e02020"></span>
         </div>
       </div>
     </div>
@@ -562,8 +576,12 @@ async function loadSettingsAndFiles() {
       const m = d.manifest;
       $('pdf-info').innerHTML =
         '当前作品集：<b>v' + esc(m.version) + '</b> · 共 ' + esc(m.count) + ' 页';
+      $('delete-card').style.display = 'block';
+      $('pdf-upload').textContent = '上传替换';
     } else {
-      $('pdf-info').textContent = '尚未上传作品集';
+      $('pdf-info').textContent = '尚未上传作品集，请选择 PDF 文件上传';
+      $('delete-card').style.display = 'none';
+      $('pdf-upload').textContent = '上传作品集';
     }
     if (d.qr_version > 0) {
       $('qr-preview').src = '/api/file/qrcode?v=' + d.qr_version;
@@ -731,6 +749,30 @@ $('pdf-upload').addEventListener('click', async () => {
   }
   setTimeout(() => { bar.style.display = 'none'; }, 2000);
   btn.disabled = false; btn.textContent = '上传替换';
+});
+
+// ---------- 删除作品集 ----------
+$('pdf-delete').addEventListener('click', async () => {
+  if (!confirm('确定删除当前作品集吗？\n\n所有页面图片和 PDF 文件将被永久清除，此操作不可撤销。\n站点设置（标题、联系方式、二维码）不受影响。')) return;
+  const btn = $('pdf-delete');
+  btn.disabled = true; btn.textContent = '删除中…';
+  $('delete-msg').textContent = '';
+  try {
+    const d = await API.req('/api/upload', { method: 'DELETE' });
+    if (d.ok) {
+      $('delete-msg').textContent = '已删除 ✓';
+      $('delete-msg').style.color = '#34c759';
+      loadSettingsAndFiles();
+      setTimeout(() => { $('delete-msg').textContent = ''; }, 3000);
+    } else {
+      $('delete-msg').textContent = d.error || '删除失败';
+      $('delete-msg').style.color = '#e02020';
+    }
+  } catch (e) {
+    $('delete-msg').textContent = '网络错误，请重试';
+    $('delete-msg').style.color = '#e02020';
+  }
+  btn.disabled = false; btn.textContent = '删除当前作品集';
 });
 
 // ---------- 二维码上传 ----------

@@ -1,4 +1,4 @@
-import { json, verifyToken, saveFile, deleteFile } from '../_lib';
+import { json, verifyToken, saveFile, deleteFile, loadFile } from '../_lib';
 
 // POST /api/upload —— 上传页面图片 / 页面清单 / 二维码（需登录）
 export async function onRequestPost(context) {
@@ -114,4 +114,61 @@ export async function onRequestPost(context) {
   }
 
   return json({ ok: false, error: '未知类型' }, 400);
+}
+
+// DELETE /api/upload —— 删除当前作品集（需登录）
+// 清除所有 R2 页面图片 + PDF 分块 + D1 记录，保留站点设置和二维码
+export async function onRequestDelete(context) {
+  const { request, env } = context;
+  if (!(await verifyToken(request, env))) return json({ ok: false, error: '登录已过期，请重新登录' }, 401);
+
+  // 读取当前和上一版 manifest
+  const mfRow = await env.DB.prepare('SELECT value FROM config WHERE key=?').bind('pages_manifest').first();
+  const cur = mfRow ? JSON.parse(mfRow.value) : null;
+  const prevRow = await env.DB.prepare('SELECT value FROM config WHERE key=?').bind('pages_prev').first();
+  const prev = prevRow ? JSON.parse(prevRow.value) : null;
+
+  // 删除 R2 页面图片
+  const versions = [cur, prev].filter(Boolean);
+  for (const m of versions) {
+    for (let i = 1; i <= (m.count || 0); i++) {
+      await deleteFile(env, `page_v${m.version}_${i}`);
+    }
+  }
+
+  // 删除 PDF 分块
+  const pdfRow = await env.DB.prepare('SELECT value FROM config WHERE key=?').bind('pdf_info').first();
+  const pdfInfo = pdfRow ? JSON.parse(pdfRow.value) : null;
+  if (pdfInfo && pdfInfo.size) {
+    const chunks = Math.ceil(pdfInfo.size / (20 * 1024 * 1024));
+    for (let i = 0; i < chunks; i++) {
+      await deleteFile(env, `pdf_chunk_${i}`);
+    }
+  }
+
+  // 清除 D1 记录
+  await env.DB.prepare('DELETE FROM config WHERE key IN (?, ?, ?)')
+    .bind('pages_manifest', 'pages_prev', 'pdf_info')
+    .run();
+
+  // 清除配置中的 pages 排序
+  const cfgRow = await env.DB.prepare('SELECT value FROM config WHERE key=?').bind('site_config').first();
+  if (cfgRow) {
+    try {
+      const cfg = JSON.parse(cfgRow.value);
+      cfg.pages = null;
+      await env.DB.prepare('INSERT INTO config (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value')
+        .bind('site_config', JSON.stringify(cfg))
+        .run();
+    } catch (e) {}
+  }
+
+  // 清除 CDN 缓存
+  try {
+    const cache = caches.default;
+    const cfgUrl = new URL('https://placeholder.example.com/api/config');
+    await cache.delete(cfgUrl);
+  } catch (e) {}
+
+  return json({ ok: true });
 }
