@@ -522,6 +522,13 @@
       $('phone-pop').classList.remove('open');
     }
   });
+  // 滚动时自动收回电话气泡
+  let _scrollTimer;
+  window.addEventListener('scroll', () => {
+    $('phone-pop').classList.remove('open');
+    clearTimeout(_scrollTimer);
+    _scrollTimer = setTimeout(() => {}, 100);
+  }, { passive: true });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       qrClose();
