@@ -367,27 +367,46 @@
 </div>
 
 <script>
-// PDF.js 按需加载（仅在用户上传 PDF 时）
+// PDF.js 按需加载（仅在用户上传 PDF 时，含重试+超时）
 let _pdfjsLoaded = false;
 async function ensurePdfjs() {
   if (_pdfjsLoaded) return;
-  _pdfjsLoaded = true;
-  await new Promise((res, rej) => {
-    const s = document.createElement('script');
-    s.src = 'vendor/pdf.min.js';
-    s.onload = res;
-    s.onerror = () => { _pdfjsLoaded = false; rej(new Error('PDF 组件加载失败')); };
-    document.head.appendChild(s);
-  });
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    _pdfjsLoaded = true;
+    try {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'vendor/pdf.min.js?v=' + Date.now();
+        const timer = setTimeout(() => { _pdfjsLoaded = false; rej(new Error('PDF 组件加载超时')); }, 15000);
+        s.onload = () => { clearTimeout(timer); res(); };
+        s.onerror = () => { clearTimeout(timer); _pdfjsLoaded = false; rej(new Error('PDF 组件加载失败')); };
+        document.head.appendChild(s);
+      });
+      if (typeof pdfjsLib === 'undefined') throw new Error('pdfjsLib 未定义');
+      return;
+    } catch (e) {
+      _pdfjsLoaded = false;
+      if (attempt < 3) { await new Promise(r => setTimeout(r, 800 * attempt)); continue; }
+      throw e;
+    }
+  }
 }
 
 // jSquash WebP 编码器（基于 Google libwebp 的 WebAssembly 移植）
 // 同等画质下比 JPEG 小 25-35%，视觉无损压缩
+// 加载失败时自动降级为浏览器原生 canvas.toBlob (JPEG)
 let _webpEncoder = null;
+let _webpTried = false;
 async function ensureWebpEncoder() {
-  if (_webpEncoder) return _webpEncoder;
-  const mod = await import('https://esm.sh/@jsquash/webp@1.5.0');
-  _webpEncoder = mod.encode;
+  if (_webpTried) return _webpEncoder;
+  _webpTried = true;
+  try {
+    const mod = await import('https://esm.sh/@jsquash/webp@1.5.0');
+    _webpEncoder = mod.encode;
+  } catch (e) {
+    console.warn('WebP 编码器加载失败，降级为 JPEG', e);
+    _webpEncoder = null;
+  }
   return _webpEncoder;
 }
 const $ = (id) => document.getElementById(id);
@@ -650,10 +669,22 @@ $('pdf-upload').addEventListener('click', async () => {
       canvas.height = Math.floor(vp.height);
       const ctx = canvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport: vp }).promise;
-      // jSquash WebP 编码（libwebp WASM）：质量 82 视觉无损，比 JPEG 0.72 文件小 25-35%
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const webpBuf = await webpEncode(imageData, { quality: 82 });
-      const blob = new Blob([webpBuf], { type: 'image/webp' });
+      // 编码图片：优先 WebP（jSquash libwebp WASM, 质量82视觉无损），降级为 JPEG
+      let blob, fileExt;
+      if (webpEncode) {
+        try {
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const webpBuf = await webpEncode(imageData, { quality: 82 });
+          blob = new Blob([webpBuf], { type: 'image/webp' });
+          fileExt = '.webp';
+        } catch (e) {
+          console.warn('WebP 编码失败，降级 JPEG', e);
+        }
+      }
+      if (!blob || blob.size === 0) {
+        blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.82));
+        fileExt = '.jpg';
+      }
       if (!blob || blob.size === 0) throw new Error('第 ' + i + ' 页渲染失败');
       if (blob.size > 8 * 1024 * 1024) throw new Error('第 ' + i + ' 页图片过大');
       dims[i - 1] = { w: canvas.width, h: canvas.height };
@@ -667,7 +698,7 @@ $('pdf-upload').addEventListener('click', async () => {
         fd.append('type', 'page_image');
         fd.append('version', String(version));
         fd.append('index', String(idx));
-        fd.append('file', blob, idx + '.webp');
+        fd.append('file', blob, idx + fileExt);
         await postForm(fd);
         uploaded++;
         updateProgress();
