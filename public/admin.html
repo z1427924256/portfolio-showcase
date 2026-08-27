@@ -386,7 +386,7 @@ async function ensurePdfjs() {
 let _webpEncoder = null;
 async function ensureWebpEncoder() {
   if (_webpEncoder) return _webpEncoder;
-  const mod = await import('https://esm.sh/@jsquash/webp@2.2.0');
+  const mod = await import('https://esm.sh/@jsquash/webp@1.5.0');
   _webpEncoder = mod.encode;
   return _webpEncoder;
 }
