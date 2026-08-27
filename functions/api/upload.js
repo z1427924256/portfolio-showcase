@@ -26,34 +26,6 @@ export async function onRequestPost(context) {
     return json({ ok: true, version: nextVer });
   }
 
-  // KV → R2 存量数据迁移（一次性运维操作，keys 为逗号分隔的键名，单次 ≤ 20 个）
-  if (type === 'kv_to_r2') {
-    if (!env.R2) return json({ ok: false, error: '未绑定 R2 存储桶' }, 400);
-    const keys = String(form.get('keys') || '').split(',').map((s) => s.trim()).filter(Boolean);
-    if (!keys.length || keys.length > 20) return json({ ok: false, error: 'keys 参数错误（1-20 个键名）' }, 400);
-    const done = [], failed = [];
-    for (const k of keys) {
-      try {
-        const { value, metadata } = await env.FILES.getWithMetadata(k, { type: 'arrayBuffer' });
-        if (value == null) { failed.push({ key: k, error: 'KV 中不存在' }); continue; }
-        await env.R2.put(k, value, {
-          httpMetadata: { contentType: (metadata && metadata.contentType) || 'application/octet-stream' },
-        });
-        done.push(k);
-      } catch (e) {
-        failed.push({ key: k, error: String((e && e.message) || e) });
-      }
-    }
-    return json({ ok: failed.length === 0, done, failed });
-  }
-
-  // 列出 KV 键（迁移前后核查用）
-  if (type === 'kv_list') {
-    const cursor = String(form.get('cursor') || '');
-    const list = await env.FILES.list({ cursor: cursor || undefined, limit: 100 });
-    return json({ ok: true, keys: list.keys.map((k) => k.name), cursor: list.cursor || null });
-  }
-
   const file = form.get('file');
 
   // 单页图片
@@ -108,7 +80,7 @@ export async function onRequestPost(context) {
     // 只清理"上上一版"
     const prevRow = await env.DB.prepare('SELECT value FROM config WHERE key=?').bind('pages_prev').first();
     const prevOld = prevRow ? JSON.parse(prevRow.value) : null;
-    if (prevOld && prevOld.version !== version && prevOld.version !== (cur && cur.version) && prevOld.count > 0) {
+    if (prevOld && prevOld.version !== version && (!cur || prevOld.version !== cur.version) && prevOld.count > 0) {
       const olds = [];
       for (let i = 1; i <= prevOld.count; i++) olds.push(`page_v${prevOld.version}_${i}`);
       for (let i = 0; i < olds.length; i += 10) {

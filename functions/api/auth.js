@@ -1,4 +1,4 @@
-import { json, verifyPassword, verifyToken, randB64, hashPassword, signToken } from '../_lib';
+import { json, verifyPassword, verifyToken, randB64, hashPassword, signToken, getSecret } from '../_lib';
 
 // POST /api/auth —— 登录（带失败次数限制）
 export async function onRequestPost(context) {
@@ -33,7 +33,6 @@ export async function onRequestPost(context) {
 
   await env.DB.prepare('DELETE FROM login_attempts WHERE ip=?').bind(ip).run();
 
-  const { getSecret } = await import('../_lib');
   const secret = await getSecret(env);
   if (!secret) return json({ ok: false, error: '系统尚未初始化' }, 500);
 

@@ -22,9 +22,9 @@ export async function onRequestGet(context) {
   const map = {};
   for (const r of results || []) map[r.key] = r.value;
 
-  const cfg = map.site_config ? JSON.parse(map.site_config) : {};
-  const pdfInfo = map.pdf_info ? JSON.parse(map.pdf_info) : null;
-  const mf = map.pages_manifest ? JSON.parse(map.pages_manifest) : null;
+  const cfg = (() => { try { return map.site_config ? JSON.parse(map.site_config) : {}; } catch { return {}; } })();
+  const pdfInfo = (() => { try { return map.pdf_info ? JSON.parse(map.pdf_info) : null; } catch { return null; } })();
+  const mf = (() => { try { return map.pages_manifest ? JSON.parse(map.pages_manifest) : null; } catch { return null; } })();
 
   const res = json(
     {

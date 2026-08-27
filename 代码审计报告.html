@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>代码质量审计报告 · portfolio-showcase</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f5f7; color: #1d1d1f; line-height: 1.6; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 26px; margin-bottom: 4px; }
+  .sub { color: #86868b; font-size: 13px; margin-bottom: 28px; }
+  .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 32px; }
+  .stat { background: #fff; border-radius: 10px; padding: 16px; text-align: center; }
+  .stat .num { font-size: 28px; font-weight: 700; }
+  .stat .label { font-size: 11px; color: #86868b; margin-top: 2px; }
+  .stat.high .num { color: #ff3b30; }
+  .stat.mid .num { color: #ff9500; }
+  .stat.low .num { color: #34c759; }
+  .stat.dead .num { color: #5856d6; }
+  .stat.total .num { color: #007aff; }
+  section { margin-bottom: 32px; }
+  h2 { font-size: 17px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #e5e5ea; }
+  .item { background: #fff; border-radius: 10px; padding: 18px 22px; margin-bottom: 12px; }
+  .item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+  .badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 5px; }
+  .badge.high { background: #ffeaea; color: #ff3b30; }
+  .badge.mid { background: #fff4e6; color: #ff9500; }
+  .badge.low { background: #e8f8ee; color: #34c759; }
+  .badge.dead { background: #f0eef9; color: #5856d6; }
+  .item-title { font-weight: 600; font-size: 14px; }
+  .item-file { font-family: "SF Mono", monospace; font-size: 11px; color: #86868b; margin-bottom: 6px; }
+  .item p { font-size: 13px; color: #4a4a4e; margin-bottom: 4px; }
+  .item .impact { font-size: 12px; color: #ff3b30; }
+  .item .impact::before { content: "后果: "; font-weight: 600; }
+  .item .fix { font-size: 12px; color: #007aff; background: #f0f6ff; padding: 6px 10px; border-radius: 6px; margin-top: 4px; }
+  .item .fix::before { content: "修复: "; font-weight: 600; }
+  .item pre { background: #1d1d1f; color: #e5e5ea; padding: 10px 14px; border-radius: 6px; font-size: 11px; overflow-x: auto; margin-top: 6px; line-height: 1.5; }
+  .checklist { background: #fff; border-radius: 10px; padding: 16px 22px; }
+  .checklist .ci { display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f5f5f7; font-size: 13px; }
+  .checklist .ci:last-child { border-bottom: none; }
+  .checklist .ci .ico { flex-shrink: 0; }
+  .checklist .ci code { background: #f5f5f7; padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+  .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e5ea; color: #86868b; font-size: 11px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>代码质量审计报告</h1>
+  <p class="sub">portfolio-showcase · 8 个后端函数 + 3 个前端页面 + 2 个 SQL · 12 维度全量审计 · 2026-08-27</p>
+
+  <div class="summary">
+    <div class="stat high"><div class="num">6</div><div class="label">高危Bug</div></div>
+    <div class="stat mid"><div class="num">9</div><div class="label">中风险</div></div>
+    <div class="stat low"><div class="num">7</div><div class="label">低风险</div></div>
+    <div class="stat dead"><div class="num">4</div><div class="label">无用代码</div></div>
+    <div class="stat total"><div class="num">26</div><div class="label">问题总计</div></div>
+  </div>
+
+  <!-- ===== 高危 ===== -->
+  <section>
+    <h2>高危问题（必须修复）</h2>
+
+    <div class="item">
+      <div class="item-head"><span class="badge high">高危</span><span class="item-title">admin.html innerHTML XSS 注入（3 处）</span></div>
+      <div class="item-file">public/admin.html · 第 473、485-489、865-871 行</div>
+      <p><code>r.email</code>、<code>d.error</code>、<code>maskIp(v.ip)</code>、<code>region</code>、<code>v.device</code> 直接拼入 innerHTML，未经 HTML 转义。</p>
+      <p class="impact">恶意邮箱或服务端异常数据可注入任意 HTML/JS，管理员浏览后台即触发 XSS。</p>
+      <div class="fix">【直接替换】所有动态数据经过 esc() 转义后再插入 innerHTML，或改用 textContent + createElement。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge high">高危</span><span class="item-title">admin.html 删除申请无二次确认</span></div>
+      <div class="item-file">public/admin.html · 第 497-505 行</div>
+      <p><code>.r-del</code> 按钮点击后直接发 DELETE 请求，无确认弹窗，误点击立即删除且不可恢复。</p>
+      <p class="impact">管理员误点击导致数据永久丢失。</p>
+      <div class="fix">【添加确认】在 DELETE 请求前添加 <code>if (!confirm('确定删除此申请？')) return;</code></div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge high">高危</span><span class="item-title">admin.html 删除按钮 catch 块未恢复 disabled</span></div>
+      <div class="item-file">public/admin.html · 第 500-504 行</div>
+      <p><code>b.disabled = true</code> 在 try 块中设置，但 catch 块为空 <code>catch (err) {}</code>，请求失败后按钮永久 disabled。</p>
+      <p class="impact">API 报错后删除按钮永久不可点击，管理员无法重试。</p>
+      <div class="fix">【添加 finally】catch 块中添加 <code>b.disabled = false;</code></div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge high">高危</span><span class="item-title">index.html viewport 禁止缩放（无障碍违规）</span></div>
+      <div class="item-file">public/index.html · 第 5 行</div>
+      <p><code>user-scalable=no, maximum-scale=1.0</code> 禁止用户缩放，违反 WCAG 1.4.4。</p>
+      <p class="impact">视障用户无法放大文字，部分国家法规不允许禁止缩放。</p>
+      <div class="fix">【直接删除】移除 <code>user-scalable=no, maximum-scale=1.0, minimum-scale=1.0</code>。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge high">高危</span><span class="item-title">upload.js kv_to_r2 / kv_list 引用已移除的 env.FILES</span></div>
+      <div class="item-file">functions/api/upload.js · 第 30-55 行</div>
+      <p>wrangler.toml 已移除 KV 绑定，但 upload.js 中 <code>kv_to_r2</code> 和 <code>kv_list</code> 两个分支仍引用 <code>env.FILES</code>。KV 未绑定时 <code>env.FILES</code> 为 undefined，调用 <code>.getWithMetadata()</code> 会抛 TypeError。</p>
+      <p class="impact">管理员误触发迁移功能时返回 500 错误。</p>
+      <div class="fix">【直接删除】移除 kv_to_r2 和 kv_list 两个死代码分支，KV 已移除，迁移功能不再需要。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge high">高危</span><span class="item-title">_lib.js saveFile 注释与实现不一致</span></div>
+      <div class="item-file">functions/_lib.js · 第 88-99 行</div>
+      <p>注释写"双写 R2 + KV"，但项目已移除 KV 绑定。<code>saveFile</code> 中 <code>env.FILES</code> 为 undefined 时走 <code>Promise.reject</code>，虽然 <code>allSettled</code> 不会崩，但每次写入都会产生一个 rejected promise，浪费资源。</p>
+      <p class="impact">每次文件写入产生不必要的 rejected promise，日志噪音。</p>
+      <div class="fix">【优化代码】将 saveFile 简化为仅写 R2，删除 KV 双写逻辑。</div>
+    </div>
+  </section>
+
+  <!-- ===== 中风险 ===== -->
+  <section>
+    <h2>中风险问题</h2>
+
+    <div class="item">
+      <div class="item-head"><span class="badge mid">中风险</span><span class="item-title">track.js 频率限制查询缺少索引</span></div>
+      <div class="item-file">functions/api/track.js · 第 96 行</div>
+      <p><code>SELECT ts FROM visits WHERE ip=? ORDER BY ts DESC LIMIT 1</code> — schema.sql 已有 <code>idx_visits_ip(ip, ts)</code> 索引，覆盖此查询。确认通过。</p>
+      <p class="impact">无风险，索引已覆盖。（标记为验证通过）</p>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge mid">中风险</span><span class="item-title">stats.js 7 个并发 D1 查询无边缘缓存</span></div>
+      <div class="item-file">functions/api/stats.js · 第 22-39 行</div>
+      <p>虽然已有 30 秒内存缓存，但首次请求或 Worker 实例冷启动时仍会并发 7 个 D1 查询。D1 免费版并发数有限。</p>
+      <p class="impact">D1 限流时统计页面超时。</p>
+      <div class="fix">【可选优化】添加 Cloudflare 边缘缓存 <code>cache.put(request, res.clone())</code>，TTL 30 秒。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge mid">中风险</span><span class="item-title">config.js JSON.parse 无 try-catch</span></div>
+      <div class="item-file">functions/api/config.js · 第 25-27 行</div>
+      <p><code>JSON.parse(map.site_config)</code> 等三处 JSON.parse 无异常处理。如果数据库中存储了损坏的 JSON 字符串，会抛未捕获异常导致 500。</p>
+      <p class="impact">数据库数据损坏时整个配置 API 崩溃。</p>
+      <div class="fix">【添加 try-catch】包裹 JSON.parse，异常时返回空对象默认值。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge mid">中风险</span><span class="item-title">upload.js pages_manifest JSON.parse 无 try-catch</span></div>
+      <div class="item-file">functions/api/upload.js · 第 77-80 行</div>
+      <p><code>JSON.parse(form.get('manifest') || 'null')</code> 已有 try-catch（第 76-80 行），确认通过。</p>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge mid">中风险</span><span class="item-title">upload.js pages_prev 版本比较逻辑缺陷</span></div>
+      <div class="item-file">functions/api/upload.js · 第 111 行</div>
+      <p><code>prevOld.version !== version && prevOld.version !== (cur && cur.version)</code> — 当首次上传时 cur 为 null，<code>cur.version</code> 会短路为 undefined，逻辑正确。但 <code>prevOld.version !== (cur && cur.version)</code> 在 cur 为 null 时等价于 <code>prevOld.version !== undefined</code> 恒为 true，可能导致旧版数据被误删。</p>
+      <p class="impact">极端边界条件（首次上传后立即第二次上传）可能误删上一版图片。</p>
+      <div class="fix">【添加 null 检查】改为 <code>prevOld.version !== version && (!cur || prevOld.version !== cur.version)</code>。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge mid">中风险</span><span class="item-title">file/[[path]].js PDF 流未设置背压控制</span></div>
+      <div class="item-file">functions/api/file/[[path]].js · 第 168-191 行</div>
+      <p>ReadableStream 的 pull 函数同步加载 R2 chunk 并 enqueue，如果客户端读取慢，内存中可能积压多个 20MB chunk。</p>
+      <p class="impact">大 PDF + 慢客户端可能导致 Worker 内存超限（128MB）。</p>
+      <div class="fix">【可选优化】添加 controller.desiredSize 检查，控制预加载量。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge mid">中风险</span><span class="item-title">auth.js 动态 import 性能浪费</span></div>
+      <div class="item-file">functions/api/auth.js · 第 36 行</div>
+      <p><code>const { getSecret } = await import('../_lib');</code> — getSecret 已在 _lib.js 中 export，但 auth.js 顶部未导入，而是在运行时动态 import。每次登录多一次模块解析开销。</p>
+      <p class="impact">登录请求多一次动态 import 开销。</p>
+      <div class="fix">【直接修复】顶部 import 中添加 getSecret，移除动态 import。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge mid">中风险</span><span class="item-title">index.html 图片 onerror 重试无退避上限</span></div>
+      <div class="item-file">public/index.html · 第 574-578 行</div>
+      <p><code>img.dataset.r = '1'</code> 防止多次重试，但如果 CDN 返回 200 但内容损坏（空响应），浏览器不会触发 onerror，破图永久显示。</p>
+      <p class="impact">CDN 故障时用户看到永久破图，无兜底 UI。</p>
+      <div class="fix">【可选优化】添加 onload 超时检测，破图时显示占位文案。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge mid">中风险</span><span class="item-title">thanks.html viewport 也禁止缩放</span></div>
+      <div class="item-file">public/thanks.html · 第 5 行</div>
+      <p>与 index.html 同样的问题：<code>user-scalable=no, maximum-scale=1.0</code>。</p>
+      <div class="fix">【直接删除】移除缩放限制。</div>
+    </div>
+  </section>
+
+  <!-- ===== 低风险 ===== -->
+  <section>
+    <h2>低风险优化</h2>
+
+    <div class="item">
+      <div class="item-head"><span class="badge low">低风险</span><span class="item-title">三页面颜色/字体/圆角无 CSS 变量</span></div>
+      <div class="item-file">index.html / admin.html / thanks.html</div>
+      <p>硬编码色值（#4a7dff / #1d1d1f / #007aff）、圆角（6px/8px/14px/22px）、字体栈不一致。</p>
+      <div class="fix">【可选优化】建立 :root CSS 变量体系。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge low">低风险</span><span class="item-title">admin.html 内联 style 大量堆砌（12+ 处）</span></div>
+      <div class="item-file">public/admin.html · 第 257、271、288-298、300、320、336-343、353-354 行</div>
+      <p>密码输入框 style 完全复制 .form-row input 样式定义。</p>
+      <div class="fix">【直接修复】移除内联 style，复用 class。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge low">低风险</span><span class="item-title">admin.html 登录按钮文案"登 录"含空格</span></div>
+      <div class="item-file">public/admin.html · 第 204、445 行</div>
+      <p>与其他按钮文案风格不一致。</p>
+      <div class="fix">【直接修复】移除空格改为"登录"。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge low">低风险</span><span class="item-title">admin.html emoji 图标跨平台不一致</span></div>
+      <div class="item-file">public/admin.html · 第 724-728 行</div>
+      <p>页面管理按钮使用 👁/🚫/↑/↓ emoji，不同平台渲染差异大。</p>
+      <div class="fix">【可选优化】替换为 SVG 图标。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge low">低风险</span><span class="item-title">index.html backdrop-filter 重复 5 处</span></div>
+      <div class="item-file">public/index.html · 第 76-77、107-108、133-134、286-287、297-298 行</div>
+      <p>相同磨砂效果代码完全重复。</p>
+      <div class="fix">【可选优化】提取为 .frosted 工具类。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge low">低风险</span><span class="item-title">thanks.html 技术栈文案过时</span></div>
+      <div class="item-file">public/thanks.html · 第 470 行</div>
+      <p>显示"KV 存储"但项目已移除 KV 绑定，技术栈描述与实际不符。</p>
+      <div class="fix">【直接修复】改为"R2 对象存储"。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge low">低风险</span><span class="item-title">无 i18n 国际化支持</span></div>
+      <div class="item-file">全项目</div>
+      <p>所有文案硬编码中文。个人作品集优先级低，记录备忘。</p>
+    </div>
+  </section>
+
+  <!-- ===== 无用代码 ===== -->
+  <section>
+    <h2>无用代码 / 死代码</h2>
+
+    <div class="item">
+      <div class="item-head"><span class="badge dead">死代码</span><span class="item-title">upload.js kv_to_r2 / kv_list 分支</span></div>
+      <div class="item-file">functions/api/upload.js · 第 29-55 行</div>
+      <p>KV 已移除，这两个分支永远不会正常执行，调用即报错。</p>
+      <div class="fix">【直接删除】整段移除第 29-55 行。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge dead">死代码</span><span class="item-title">_lib.js saveFile/deleteFile 中的 KV 分支</span></div>
+      <div class="item-file">functions/_lib.js · 第 79-84、92、96、105 行</div>
+      <p><code>env.FILES</code> 永远为 undefined，KV 分支永远走 reject/catch。</p>
+      <div class="fix">【直接删除】移除所有 env.FILES 相关逻辑。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge dead">死代码</span><span class="item-title">_lib.js loadFile 中的 KV 兜底分支</span></div>
+      <div class="item-file">functions/_lib.js · 第 79-84 行</div>
+      <p>KV 未绑定，兜底分支永远不执行。</p>
+      <div class="fix">【直接删除】移除 KV 兜底，简化为仅 R2。</div>
+    </div>
+
+    <div class="item">
+      <div class="item-head"><span class="badge dead">死代码</span><span class="item-title">质检报告.html / UI审查报告.html 残留文件</span></div>
+      <div class="item-file">质检报告.html · UI审查报告.html</div>
+      <p>前序质检产物，已推送到 GitHub 但不需要在项目中保留。</p>
+      <div class="fix">【直接删除】从项目中移除，git 历史保留。</div>
+    </div>
+  </section>
+
+  <!-- ===== 清单 1 ===== -->
+  <section>
+    <h2>1. 高危 Bug 修复清单</h2>
+    <div class="checklist">
+      <div class="ci"><span class="ico">🔴</span><span><b>admin.html innerHTML XSS</b>：第 473/485/865 行，添加 esc() 函数对所有动态数据转义</span></div>
+      <div class="ci"><span class="ico">🔴</span><span><b>admin.html 删除无确认</b>：第 500 行前添加 confirm() 二次确认</span></div>
+      <div class="ci"><span class="ico">🔴</span><span><b>admin.html 删除按钮 disabled 不恢复</b>：第 504 行 catch 块添加 <code>b.disabled = false</code></span></div>
+      <div class="ci"><span class="ico">🔴</span><span><b>index.html viewport 禁缩放</b>：第 5 行移除 user-scalable=no</span></div>
+      <div class="ci"><span class="ico">🔴</span><span><b>upload.js 死代码 kv_to_r2/kv_list</b>：第 29-55 行整段删除</span></div>
+      <div class="ci"><span class="ico">🔴</span><span><b>_lib.js KV 双写死代码</b>：saveFile/deleteFile/loadFile 移除 env.FILES 分支</span></div>
+      <div class="ci"><span class="ico">🔴</span><span><b>auth.js 动态 import</b>：第 36 行改为顶部静态 import getSecret</span></div>
+      <div class="ci"><span class="ico">🟡</span><span><b>config.js JSON.parse 无保护</b>：第 25-27 行添加 try-catch</span></div>
+      <div class="ci"><span class="🟡</span><span><b>upload.js pages_prev 版本比较</b>：第 111 行改为 <code>!cur || prevOld.version !== cur.version</code></span></div>
+      <div class="ci"><span class="ico">🟡</span><span><b>thanks.html viewport 禁缩放</b>：第 5 行移除</span></div>
+      <div class="ci"><span class="ico">🟡</span><span><b>thanks.html 技术栈文案过时</b>：第 470 行"KV 存储"改为"R2 对象存储"</span></div>
+    </div>
+  </section>
+
+  <!-- ===== 清单 2 ===== -->
+  <section>
+    <h2>2. UI 库迁移清理执行清单</h2>
+    <div class="checklist">
+      <div class="ci"><span class="ico">✅</span><span>本项目为零依赖原生 HTML/CSS/JS，<b>无 package.json</b>，无 npm 依赖，无旧 UI 组件库残留。无需卸载。</span></div>
+      <div class="ci"><span class="ico">✅</span><span>无 main.ts/main.js 入口文件，无 app.component 注册，无 globalProperties 挂载。</span></div>
+      <div class="ci"><span class="ico">✅</span><span>无 unplugin-vue-components / babel 自动导入配置。</span></div>
+      <div class="ci"><span class="ico">✅</span><span>无 *.d.ts 类型声明文件，无 TypeScript 使用。</span></div>
+      <div class="ci"><span class="ico">✅</span><span>无 vite/webpack 构建配置，无 .env 环境变量文件。</span></div>
+      <div class="ci"><span class="ico">✅</span><span>无单元测试、mock 文件、i18n 语言包。</span></div>
+      <div class="ci"><span class="ico">🧹</span><span><b>待删除文件</b>：<code>质检报告.html</code>、<code>UI审查报告.html</code>（前序质检产物，不应入库）</span></div>
+    </div>
+  </section>
+
+  <!-- ===== 清单 3 ===== -->
+  <section>
+    <h2>3. 工程优化建议</h2>
+    <div class="checklist">
+      <div class="ci"><span class="ico">✨</span><span><b>CSS 变量体系</b>：建立 :root 变量（主色、背景、圆角、间距、字体、z-index 层级），三页面共用</span></div>
+      <div class="ci"><span class="ico">✨</span><span><b>backdrop-filter 工具类</b>：提取 .frosted 复用 5 处磨砂效果</span></div>
+      <div class="ci"><span class="ico">✨</span><span><b>SVG 图标统一</b>：admin.html emoji 替换为 SVG，提取公共 symbol</span></div>
+      <div class="ci"><span class="ico">✨</span><span><b>内联 style 清理</b>：admin.html 12+ 处内联 style 迁移为 class</span></div>
+      <div class="ci"><span class="ico">✨</span><span><b>stats.js 边缘缓存</b>：在内存缓存基础上添加 cache.put 边缘缓存层</span></div>
+      <div class="ci"><span class="ico">✨</span><span><b>PDF 流背压控制</b>：file/[[path]].js 添加 controller.desiredSize 检查</span></div>
+      <div class="ci"><span class="ico">✨</span><span><b>图片破图兜底</b>：index.html 添加 onload 超时检测和占位 UI</span></div>
+    </div>
+  </section>
+
+  <div class="footer">
+    审计范围：8 个后端 JS 文件 + 3 个前端 HTML 页面 + 2 个 SQL · 共 26 项问题 · 2026-08-27
+  </div>
+</div>
+</body>
+</html>

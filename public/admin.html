@@ -85,6 +85,11 @@
     border: 1px solid #d9d9de; border-radius: 8px; font-size: 14px; outline: none;
   }
   .form-row input[type=text]:focus { border-color: #4a7dff; }
+  .pw-input {
+    flex: 1; min-width: 200px; padding: 9px 12px;
+    border: 1px solid #d9d9de; border-radius: 8px; font-size: 14px; outline: none;
+  }
+  .pw-input:focus { border-color: #4a7dff; }
   .form-row .tip { font-size: 12px; color: #a0a0a6; width: 100%; margin-left: 122px; margin-top: -8px; }
   .switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
   .switch input { opacity: 0; width: 0; height: 0; }
@@ -201,7 +206,7 @@
     <h1>作品集管理后台</h1>
     <p class="sub">请输入管理密码登录</p>
     <input type="password" id="login-pass" placeholder="管理密码" autocomplete="current-password">
-    <button class="btn-main" id="login-btn">登 录</button>
+    <button class="btn-main" id="login-btn">登录</button>
     <div class="err" id="login-err"></div>
   </div>
 </div>
@@ -350,8 +355,8 @@
     <div class="panel" id="panel-passwd">
       <div class="card" style="max-width:440px">
         <h2>修改管理密码</h2>
-        <div class="form-row"><label>新密码</label><input type="password" id="np1" placeholder="至少 8 位" autocomplete="new-password" style="flex:1;padding:9px 12px;border:1px solid #d9d9de;border-radius:8px;font-size:14px"></div>
-        <div class="form-row"><label>确认密码</label><input type="password" id="np2" placeholder="再输入一次" autocomplete="new-password" style="flex:1;padding:9px 12px;border:1px solid #d9d9de;border-radius:8px;font-size:14px"></div>
+        <div class="form-row"><label>新密码</label><input type="password" id="np1" class="pw-input" placeholder="至少 8 位" autocomplete="new-password"></div>
+        <div class="form-row"><label>确认密码</label><input type="password" id="np2" class="pw-input" placeholder="再输入一次" autocomplete="new-password"></div>
         <div style="margin-top:12px">
           <button class="btn-save" id="save-passwd">修改密码</button>
           <span class="ok-msg" id="passwd-msg"></span>
@@ -376,6 +381,8 @@ async function ensurePdfjs() {
   });
 }
 const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s || '').replace(/[&<>"']/g, (m) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 const API = {
   token: sessionStorage.getItem('pf_admin_token') || '',
   async req(path, opts = {}) {
@@ -442,7 +449,7 @@ async function doLogin() {
     $('login-err').textContent = '网络错误，请重试';
   }
   btn.disabled = false;
-  btn.textContent = '登 录';
+  btn.textContent = '登录';
 }
 $('login-btn').addEventListener('click', doLogin);
 $('login-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
@@ -470,7 +477,7 @@ async function loadRequests() {
     const d = await API.req('/api/request');
     loading.style.display = 'none';
     if (!d.ok) {
-      list.innerHTML = '<div class="loading-inline">' + (d.error || '加载失败') + '</div>';
+      list.innerHTML = '<div class="loading-inline">' + esc(d.error || '加载失败') + '</div>';
       return;
     }
     if (!d.list || !d.list.length) {
@@ -483,10 +490,10 @@ async function loadRequests() {
       row.className = 'r-row';
       const dev = /mobile|android|iphone/i.test(r.ua || '') ? '手机' : /mac|windows|linux/i.test(r.ua || '') ? '电脑' : '-';
       row.innerHTML =
-        '<span class="r-mail">' + r.email + '</span>' +
-        '<span class="r-meta">' + (maskIp(r.ip) || '-') + ' · ' + dev + '</span>' +
-        '<span class="v-time" title="' + fmtTime(r.ts) + '">' + fmtVisitTime(r.ts) + '</span>' +
-        '<button class="r-del" data-id="' + r.id + '" title="删除">✕</button>';
+        '<span class="r-mail">' + esc(r.email) + '</span>' +
+        '<span class="r-meta">' + esc(maskIp(r.ip) || '-') + ' · ' + esc(dev) + '</span>' +
+        '<span class="v-time" title="' + esc(fmtTime(r.ts)) + '">' + esc(fmtVisitTime(r.ts)) + '</span>' +
+        '<button class="r-del" data-id="' + esc(r.id) + '" title="删除">✕</button>';
       list.appendChild(row);
     });
   } catch (e) {
@@ -497,11 +504,14 @@ async function loadRequests() {
 $('req-list').addEventListener('click', async (e) => {
   const b = e.target.closest('.r-del');
   if (!b) return;
+  if (!confirm('确定删除此申请？')) return;
   b.disabled = true;
   try {
     const d = await API.req('/api/request?id=' + b.dataset.id, { method: 'DELETE' });
     if (d.ok) b.closest('.r-row').remove();
-  } catch (err) {}
+  } catch (err) {
+    b.disabled = false;
+  }
 });
 
 // ---------- 内容设置 ----------
@@ -785,9 +795,9 @@ function rankRender(el, list) {
     const d = document.createElement('div');
     d.className = 'rank-item';
     d.innerHTML =
-      '<span class="name" title="' + (x.k || '') + '">' + (x.k || '未知') + '</span>' +
+      '<span class="name" title="' + esc(x.k || '') + '">' + esc(x.k || '未知') + '</span>' +
       '<div class="track"><div class="fill" style="width:' + Math.max(3, (x.c / max) * 100) + '%"></div></div>' +
-      '<span class="num">' + x.c + '</span>';
+      '<span class="num">' + esc(x.c) + '</span>';
     el.appendChild(d);
   });
 }
@@ -845,7 +855,7 @@ async function loadStats() {
       w.title = d + '：' + c + ' 次访问';
       w.innerHTML =
         '<div class="bar" style="height:' + Math.max(2, (c / maxC) * 110) + 'px"></div>' +
-        '<div class="lbl">' + d.slice(5) + '</div>';
+        '<div class="lbl">' + esc(d.slice(5)) + '</div>';
       chart.appendChild(w);
     });
 
@@ -864,11 +874,11 @@ async function loadStats() {
         region = region.replace(/^(.+)\1$/, '$1');
         row.innerHTML =
           '<span class="v-who">' +
-          '<span class="v-ip">' + maskIp(v.ip) + '</span>' +
-          '<span class="v-region">（' + region + '）</span>' +
-          '<span class="v-dev">' + (v.device || '-') + '</span>' +
+          '<span class="v-ip">' + esc(maskIp(v.ip)) + '</span>' +
+          '<span class="v-region">（' + esc(region) + '）</span>' +
+          '<span class="v-dev">' + esc(v.device || '-') + '</span>' +
           '</span>' +
-          '<span class="v-time" title="' + fmtTime(v.ts) + '">' + fmtVisitTime(v.ts) + '</span>';
+          '<span class="v-time" title="' + esc(fmtTime(v.ts)) + '">' + esc(fmtVisitTime(v.ts)) + '</span>';
         list.appendChild(row);
       });
     }

@@ -66,42 +66,26 @@ export const randB64 = (n) =>
   btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(n))));
 
 // ---------- 文件存储：R2（唯一存储）----------
-// 读：R2 优先，KV 作可选兜底（未绑定 KV 时自动跳过）；写：R2 为主，KV 双写（如已绑定）；删：双删。
 
 /** 读取文件，返回 { buf } 或 null */
 export async function loadFile(env, key) {
-  if (env.R2) {
-    try {
-      const obj = await env.R2.get(key);
-      if (obj) return { buf: await obj.arrayBuffer() };
-    } catch (e) {}
-  }
-  if (env.FILES) {
-    try {
-      const buf = await env.FILES.get(key, { type: 'arrayBuffer' });
-      if (buf != null) return { buf };
-    } catch (e) {}
-  }
+  if (!env.R2) return null;
+  try {
+    const obj = await env.R2.get(key);
+    if (obj) return { buf: await obj.arrayBuffer() };
+  } catch (e) {}
   return null;
 }
 
-/** 双写 R2 + KV，返回实际写入成功的存储列表（如 ['r2','kv']） */
+/** 写入 R2，返回存储列表 */
 export async function saveFile(env, key, buf, contentType) {
-  const results = await Promise.allSettled([
-    env.R2 ? env.R2.put(key, buf, { httpMetadata: { contentType } }) : Promise.reject(new Error('R2 未绑定')),
-    env.FILES ? env.FILES.put(key, buf, { contentType }) : Promise.reject(new Error('KV 未绑定')),
-  ]);
-  const stores = [];
-  if (results[0].status === 'fulfilled') stores.push('r2');
-  if (results[1].status === 'fulfilled') stores.push('kv');
-  if (!stores.length) throw new Error('文件保存失败');
-  return stores;
+  if (!env.R2) throw new Error('R2 未绑定');
+  await env.R2.put(key, buf, { httpMetadata: { contentType } });
+  return ['r2'];
 }
 
-/** 双删 R2 + KV */
+/** 删除 R2 文件 */
 export async function deleteFile(env, key) {
-  await Promise.all([
-    env.R2 ? env.R2.delete(key).catch(() => {}) : Promise.resolve(),
-    env.FILES ? env.FILES.delete(key).catch(() => {}) : Promise.resolve(),
-  ]);
+  if (!env.R2) return;
+  try { await env.R2.delete(key); } catch (e) {}
 }
