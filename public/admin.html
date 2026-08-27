@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>作品集管理后台</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: #f2f3f7;
+    color: #1d1d1f;
+    min-height: 100vh;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  input { font-family: inherit; }
+
+  /* 登录页 */
+  .login-wrap {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .login-card {
+    background: #fff; border-radius: 16px; padding: 36px 32px;
+    width: 100%; max-width: 380px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+  }
+  .login-card h1 { font-size: 20px; margin-bottom: 6px; }
+  .login-card p.sub { font-size: 13px; color: #86868b; margin-bottom: 24px; }
+  .login-card input {
+    width: 100%; padding: 12px 14px; border: 1px solid #d9d9de;
+    border-radius: 8px; font-size: 15px; outline: none; margin-bottom: 14px;
+  }
+  .login-card input:focus { border-color: #4a7dff; }
+  .btn-main {
+    width: 100%; padding: 12px; background: #1d1d1f; color: #fff;
+    border: none; border-radius: 8px; font-size: 15px; margin-top: 4px;
+  }
+  .btn-main:hover { background: #3a3a3c; }
+  .btn-main:disabled { background: #b0b0b5; cursor: not-allowed; }
+  .err { color: #e02020; font-size: 13px; min-height: 18px; margin-top: 10px; }
+
+  /* 后台框架 */
+  .topbar {
+    background: #fff; padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar .t { font-size: 16px; font-weight: 600; }
+  .topbar .actions { display: flex; gap: 10px; }
+  .topbar a.view {
+    color: #4a7dff; text-decoration: none; font-size: 13px;
+    padding: 7px 12px; border: 1px solid #d9d9de; border-radius: 8px; background: #fff;
+  }
+  .topbar button.logout {
+    border: none; background: none; color: #86868b; font-size: 13px; padding: 7px 4px;
+  }
+  .tabs {
+    display: flex; gap: 6px; padding: 14px 20px 0; flex-wrap: wrap;
+    max-width: 980px; margin: 0 auto; width: 100%;
+  }
+  .tabs button {
+    border: none; background: none; padding: 9px 16px; font-size: 14px;
+    color: #86868b; border-radius: 8px;
+  }
+  .tabs button.on { background: #fff; color: #1d1d1f; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .main { max-width: 980px; margin: 14px auto 60px; padding: 0 20px; }
+  .panel { display: none; }
+  .panel.on { display: block; }
+
+  .card {
+    background: #fff; border-radius: 14px; padding: 22px 24px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.05); margin-bottom: 16px;
+  }
+  .card h2 { font-size: 15px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .tag { font-size: 12px; color: #86868b; font-weight: normal; }
+
+  .form-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+  .form-row label { width: 110px; font-size: 14px; color: #55555c; flex-shrink: 0; }
+  .form-row input[type=text] {
+    flex: 1; min-width: 200px; padding: 9px 12px;
+    border: 1px solid #d9d9de; border-radius: 8px; font-size: 14px; outline: none;
+  }
+  .form-row input[type=text]:focus { border-color: #4a7dff; }
+  .form-row .tip { font-size: 12px; color: #a0a0a6; width: 100%; margin-left: 122px; margin-top: -8px; }
+  .switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch span {
+    position: absolute; inset: 0; background: #d9d9de; border-radius: 12px;
+    transition: .2s; cursor: pointer;
+  }
+  .switch span::after {
+    content: ''; position: absolute; width: 20px; height: 20px;
+    left: 2px; top: 2px; background: #fff; border-radius: 50%;
+    transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .switch input:checked + span { background: #34c759; }
+  .switch input:checked + span::after { transform: translateX(18px); }
+
+  .btn-save {
+    padding: 10px 28px; background: #1d1d1f; color: #fff; border: none;
+    border-radius: 8px; font-size: 14px;
+  }
+  .btn-save:hover { background: #3a3a3c; }
+  .btn-save:disabled { background: #b0b0b5; cursor: not-allowed; }
+  .ok-msg { color: #34c759; font-size: 13px; margin-left: 10px; }
+
+  /* 统计 */
+  .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat-card { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 1px 6px rgba(0,0,0,0.05); }
+  .stat-card .v { font-size: 26px; font-weight: 700; }
+  .stat-card .k { font-size: 12px; color: #86868b; margin-top: 4px; }
+  .chart { display: flex; align-items: flex-end; gap: 5px; height: 140px; padding-top: 10px; }
+  .chart .bar-w { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; }
+  .chart .bar { width: 100%; max-width: 30px; background: #4a7dff; border-radius: 4px 4px 0 0; min-height: 2px; }
+  .chart .lbl { font-size: 10px; color: #a0a0a6; }
+  .rank-list { display: flex; flex-direction: column; gap: 9px; }
+  .rank-item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .rank-item .name { width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
+  .rank-item .track { flex: 1; height: 8px; background: #f2f3f7; border-radius: 4px; overflow: hidden; }
+  .rank-item .fill { height: 100%; background: #4a7dff; border-radius: 4px; }
+  .rank-item .num { width: 44px; text-align: right; color: #86868b; flex-shrink: 0; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } .form-row .tip { margin-left: 0; } .form-row label { width: 100%; } }
+
+  /* 访客列表 */
+  .visit-list { display: flex; flex-direction: column; }
+  .visit-list .v-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 4px; border-bottom: 1px solid #f5f5f7; font-size: 14px;
+  }
+  .visit-list .v-row:last-child { border-bottom: none; }
+  .visit-list .v-who { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .visit-list .v-ip { color: #1d1d1f; font-variant-numeric: tabular-nums; }
+  .visit-list .v-region { color: #86868b; font-size: 13px; }
+  .visit-list .v-dev { font-size: 11px; color: #a0a0a6; background: #f2f3f7; padding: 1px 7px; border-radius: 4px; flex-shrink: 0; }
+  .visit-list .v-time { color: #86868b; font-size: 13px; flex-shrink: 0; margin-left: 12px; font-variant-numeric: tabular-nums; }
+
+  /* 使用申请列表 */
+  .req-list { display: flex; flex-direction: column; }
+  .req-list .r-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 4px; border-bottom: 1px solid #f5f5f7; font-size: 14px;
+  }
+  .req-list .r-row:last-child { border-bottom: none; }
+  .req-list .r-mail {
+    color: #1d1d1f; font-weight: 600; word-break: break-all;
+    text-decoration: none; flex: 1; min-width: 0;
+  }
+  .req-list .r-meta { color: #86868b; font-size: 13px; flex-shrink: 0; }
+  .req-list .r-del {
+    flex-shrink: 0; width: 26px; height: 26px;
+    border: none; border-radius: 6px; background: transparent;
+    color: #c0c0c6; font-size: 13px; cursor: pointer; line-height: 1;
+  }
+  .req-list .r-del:hover { background: #fdeaea; color: #e02020; }
+
+  /* 页面管理 */
+  .pg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+  .pg-item {
+    border: 2px solid #ececf0; border-radius: 10px; overflow: hidden;
+    position: relative; background: #fff;
+  }
+  .pg-item.off { opacity: 0.35; }
+  .pg-item .thumb { position: relative; background: #f5f5f7; }
+  .pg-item .thumb img { width: 100%; display: block; }
+  .pg-item .no {
+    position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.55); color: #fff;
+    font-size: 11px; padding: 1px 7px; border-radius: 4px;
+  }
+  .pg-item .ops { display: flex; align-items: center; justify-content: space-between; padding: 5px 6px; }
+  .pg-item .ops button {
+    border: none; background: none; font-size: 15px; color: #55555c; padding: 2px 5px; border-radius: 4px;
+  }
+  .pg-item .ops button:hover { background: #f2f3f7; }
+  .pg-item .name { font-size: 11px; color: #86868b; text-align: center; padding-bottom: 4px; }
+
+  /* 文件管理 */
+  .file-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .file-row input[type=file] { display: none; }
+  .btn-ghost {
+    padding: 9px 18px; background: #fff; border: 1px solid #d9d9de;
+    border-radius: 8px; font-size: 13px;
+  }
+  .btn-ghost:hover { border-color: #4a7dff; color: #4a7dff; }
+  .file-info { font-size: 13px; color: #55555c; }
+  .progress { width: 100%; height: 8px; background: #f2f3f7; border-radius: 4px; overflow: hidden; margin-top: 10px; display: none; }
+  .progress .fill { height: 100%; background: #4a7dff; width: 0; transition: width .2s; }
+  .qr-preview { max-width: 160px; border-radius: 8px; border: 1px solid #ececf0; display: block; margin-top: 10px; }
+  .loading-inline { color: #86868b; font-size: 13px; padding: 20px 0; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- 登录 -->
+<div class="login-wrap" id="login-view" style="display:none">
+  <div class="login-card">
+    <h1>作品集管理后台</h1>
+    <p class="sub">请输入管理密码登录</p>
+    <input type="password" id="login-pass" placeholder="管理密码" autocomplete="current-password">
+    <button class="btn-main" id="login-btn">登 录</button>
+    <div class="err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- 后台 -->
+<div id="app-view" style="display:none">
+  <div class="topbar">
+    <div class="t">作品集管理后台</div>
+    <div class="actions">
+      <a class="view" href="/" target="_blank">查看前台 ↗</a>
+      <button class="logout" id="logout-btn">退出</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button data-tab="overview" class="on">概览</button>
+    <button data-tab="settings">内容设置</button>
+    <button data-tab="pages">页面管理</button>
+    <button data-tab="files">文件管理</button>
+    <button data-tab="requests">使用申请</button>
+    <button data-tab="passwd">修改密码</button>
+  </div>
+
+  <div class="main">
+    <!-- 概览 -->
+    <div class="panel on" id="panel-overview">
+      <div class="stat-cards" id="stat-cards"></div>
+      <div class="card">
+        <h2>近 14 天访问量</h2>
+        <div class="chart" id="chart"></div>
+      </div>
+      <div class="grid-2">
+        <div class="card"><h2>设备</h2><div class="rank-list" id="rank-device"></div></div>
+        <div class="card"><h2>地区</h2><div class="rank-list" id="rank-region"></div></div>
+      </div>
+      <div class="card">
+        <h2>最近访客 <span class="tag">最近 100 条</span></h2>
+        <div class="visit-list" id="visit-list"><div class="loading-inline">暂无访客记录</div></div>
+      </div>
+    </div>
+
+    <!-- 内容设置 -->
+    <div class="panel" id="panel-settings">
+      <div class="card">
+        <h2>内容设置 <span class="tag">保存后前台立即生效</span></h2>
+        <div class="form-row">
+          <label>网页标题</label>
+          <input type="text" id="set-title" placeholder="浏览器标签页显示的标题">
+        </div>
+        <div class="form-row">
+          <label>底部水印</label>
+          <div class="switch"><input type="checkbox" id="set-wm-on"><span></span></div>
+          <span style="font-size:13px;color:#86868b">显示水印</span>
+        </div>
+        <div class="form-row">
+          <label>水印文字</label>
+          <input type="text" id="set-wm-text" placeholder="例如：内容由 {name} 创作 · 感谢您的关注">
+          <div class="tip">用 <b>{name}</b> 代替需要加粗的名字</div>
+        </div>
+        <div class="form-row">
+          <label>加粗名字</label>
+          <input type="text" id="set-wm-name" placeholder="水印中加粗显示的名字">
+        </div>
+        <div class="form-row">
+          <label>电话按钮</label>
+          <div class="switch"><input type="checkbox" id="set-phone-on"><span></span></div>
+          <span style="font-size:13px;color:#86868b">显示电话按钮</span>
+        </div>
+        <div class="form-row">
+          <label>电话号码</label>
+          <input type="text" id="set-phone" placeholder="仅数字，例如 13999679589">
+        </div>
+        <div class="form-row">
+          <label>微信二维码</label>
+          <div class="switch"><input type="checkbox" id="set-qr-on"><span></span></div>
+          <span style="font-size:13px;color:#86868b">显示微信按钮</span>
+        </div>
+        <div class="form-row">
+          <label>微信号</label>
+          <input type="text" id="set-wxid" placeholder="选填，填写后手机端可一键复制并打开微信">
+          <div class="tip">填了微信号：手机访客点击微信按钮会自动复制，一键打开微信搜索添加</div>
+        </div>
+        <div class="form-row" style="align-items:flex-start">
+          <label style="padding-top:6px">二维码图片</label>
+          <div style="flex:1;min-width:0">
+            <img class="qr-preview" id="qr-preview" alt="当前二维码">
+            <div class="file-row" style="margin-top:12px">
+              <input type="file" id="qr-file" accept="image/*">
+              <button class="btn-ghost" id="qr-pick">选择图片</button>
+              <button class="btn-save" id="qr-upload" style="padding:9px 22px">上传替换</button>
+              <span class="file-info" id="qr-upload-status" style="color:#a0a0a6"></span>
+            </div>
+            <div class="progress" id="qr-progress"><div class="fill"></div></div>
+          </div>
+        </div>
+        <div style="margin-top:18px">
+          <button class="btn-save" id="save-settings">保存设置</button>
+          <span class="ok-msg" id="settings-msg"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 使用申请 -->
+    <div class="panel" id="panel-requests">
+      <div class="card">
+        <h2>使用申请 <span class="tag">感谢页提交的邮箱 · 最近 500 条</span></h2>
+        <div class="loading-inline" id="req-loading">正在加载…</div>
+        <div class="req-list" id="req-list"></div>
+      </div>
+    </div>
+
+    <!-- 页面管理 -->
+    <div class="panel" id="panel-pages">
+      <div class="card">
+        <h2>页面管理 <span class="tag">隐藏不需要展示的页，调整前后顺序</span></h2>
+        <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-ghost" id="pg-all">全部显示</button>
+          <button class="btn-ghost" id="pg-reset">恢复原始顺序</button>
+          <button class="btn-save" id="pg-save" style="padding:9px 22px">保存页面设置</button>
+          <span class="ok-msg" id="pg-msg"></span>
+        </div>
+        <div class="loading-inline" id="pg-loading">正在加载页面缩略图…</div>
+        <div class="pg-grid" id="pg-grid"></div>
+      </div>
+    </div>
+
+    <!-- 文件管理 -->
+    <div class="panel" id="panel-files">
+      <div class="card">
+        <h2>作品集 PDF</h2>
+        <div class="file-info" id="pdf-info">未上传</div>
+        <div class="file-row" style="margin-top:14px">
+          <input type="file" id="pdf-file" accept="application/pdf,.pdf">
+          <button class="btn-ghost" id="pdf-pick">选择 PDF 文件</button>
+          <button class="btn-save" id="pdf-upload" style="padding:9px 22px">上传替换</button>
+        </div>
+        <div class="progress" id="pdf-progress"><div class="fill"></div></div>
+        <div class="file-info" style="margin-top:8px;color:#a0a0a6" id="pdf-upload-status"></div>
+        <div class="file-info" style="margin-top:14px;color:#a0a0a6">
+          上传时会自动把每页转成高清图片，前台秒开。首次上传大文件需要几分钟，请耐心等待进度完成。
+        </div>
+      </div>
+    </div>
+
+    <!-- 修改密码 -->
+    <div class="panel" id="panel-passwd">
+      <div class="card" style="max-width:440px">
+        <h2>修改管理密码</h2>
+        <div class="form-row"><label>新密码</label><input type="password" id="np1" placeholder="至少 8 位" autocomplete="new-password" style="flex:1;padding:9px 12px;border:1px solid #d9d9de;border-radius:8px;font-size:14px"></div>
+        <div class="form-row"><label>确认密码</label><input type="password" id="np2" placeholder="再输入一次" autocomplete="new-password" style="flex:1;padding:9px 12px;border:1px solid #d9d9de;border-radius:8px;font-size:14px"></div>
+        <div style="margin-top:12px">
+          <button class="btn-save" id="save-passwd">修改密码</button>
+          <span class="ok-msg" id="passwd-msg"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// PDF.js 按需加载（仅在用户上传 PDF 时）
+let _pdfjsLoaded = false;
+async function ensurePdfjs() {
+  if (_pdfjsLoaded) return;
+  _pdfjsLoaded = true;
+  await new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'vendor/pdf.min.js';
+    s.onload = res;
+    s.onerror = () => { _pdfjsLoaded = false; rej(new Error('PDF 组件加载失败')); };
+    document.head.appendChild(s);
+  });
+}
+const $ = (id) => document.getElementById(id);
+const API = {
+  token: sessionStorage.getItem('pf_admin_token') || '',
+  async req(path, opts = {}) {
+    const headers = Object.assign({}, opts.headers || {});
+    if (this.token) headers['Authorization'] = 'Bearer ' + this.token;
+    if (opts.json !== undefined) {
+      headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(opts.json);
+      delete opts.json;
+    }
+    const r = await fetch(path, Object.assign({}, opts, { headers }));
+    if (r.status === 401) { showLogin(); throw new Error('未授权'); }
+    return r.json();
+  },
+};
+async function postForm(fd) {
+  const r = await fetch('/api/upload', {
+    method: 'POST',
+    headers: { Authorization: 'Bearer ' + API.token },
+    body: fd,
+  });
+  if (r.status === 401) { showLogin(); throw new Error('登录已过期，请重新登录'); }
+  const d = await r.json();
+  if (!d.ok) throw new Error(d.error || '上传失败');
+  return d;
+}
+
+function showLogin() {
+  $('app-view').style.display = 'none';
+  $('login-view').style.display = 'flex';
+  sessionStorage.removeItem('pf_admin_token');
+  API.token = '';
+}
+function showApp() {
+  $('login-view').style.display = 'none';
+  $('app-view').style.display = 'block';
+  loadSettings();
+  loadStats();
+  loadFiles();
+}
+
+// ---------- 登录 ----------
+async function doLogin() {
+  const btn = $('login-btn');
+  const pass = $('login-pass').value;
+  if (!pass) return;
+  btn.disabled = true;
+  btn.textContent = '登录中…';
+  try {
+    const r = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pass }),
+    }).then((x) => x.json());
+    if (r.ok) {
+      API.token = r.token;
+      sessionStorage.setItem('pf_admin_token', r.token);
+      $('login-err').textContent = '';
+      showApp();
+    } else {
+      $('login-err').textContent = r.error || '登录失败';
+    }
+  } catch (e) {
+    $('login-err').textContent = '网络错误，请重试';
+  }
+  btn.disabled = false;
+  btn.textContent = '登 录';
+}
+$('login-btn').addEventListener('click', doLogin);
+$('login-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+$('logout-btn').addEventListener('click', showLogin);
+
+// ---------- Tab ----------
+$('tabs').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-tab]');
+  if (!b) return;
+  document.querySelectorAll('#tabs button').forEach((x) => x.classList.remove('on'));
+  b.classList.add('on');
+  document.querySelectorAll('.panel').forEach((x) => x.classList.remove('on'));
+  $('panel-' + b.dataset.tab).classList.add('on');
+  if (b.dataset.tab === 'overview') loadStats();
+  if (b.dataset.tab === 'pages') initPageManager();
+  if (b.dataset.tab === 'requests') loadRequests();
+});
+
+// ---------- 使用申请 ----------
+async function loadRequests() {
+  const list = $('req-list');
+  const loading = $('req-loading');
+  loading.style.display = 'block';
+  try {
+    const d = await API.req('/api/request');
+    loading.style.display = 'none';
+    if (!d.ok) {
+      list.innerHTML = '<div class="loading-inline">' + (d.error || '加载失败') + '</div>';
+      return;
+    }
+    if (!d.list || !d.list.length) {
+      list.innerHTML = '<div class="loading-inline">还没有人提交申请</div>';
+      return;
+    }
+    list.innerHTML = '';
+    d.list.forEach((r) => {
+      const row = document.createElement('div');
+      row.className = 'r-row';
+      const dev = /mobile|android|iphone/i.test(r.ua || '') ? '手机' : /mac|windows|linux/i.test(r.ua || '') ? '电脑' : '-';
+      row.innerHTML =
+        '<span class="r-mail">' + r.email + '</span>' +
+        '<span class="r-meta">' + (maskIp(r.ip) || '-') + ' · ' + dev + '</span>' +
+        '<span class="v-time" title="' + fmtTime(r.ts) + '">' + fmtVisitTime(r.ts) + '</span>' +
+        '<button class="r-del" data-id="' + r.id + '" title="删除">✕</button>';
+      list.appendChild(row);
+    });
+  } catch (e) {
+    loading.style.display = 'none';
+    list.innerHTML = '<div class="loading-inline">加载失败，请刷新重试</div>';
+  }
+}
+$('req-list').addEventListener('click', async (e) => {
+  const b = e.target.closest('.r-del');
+  if (!b) return;
+  b.disabled = true;
+  try {
+    const d = await API.req('/api/request?id=' + b.dataset.id, { method: 'DELETE' });
+    if (d.ok) b.closest('.r-row').remove();
+  } catch (err) {}
+});
+
+// ---------- 内容设置 ----------
+async function loadSettings() {
+  try {
+    const d = await API.req('/api/config?fresh=1');
+    if (!d.ok) return;
+    const c = d.config;
+    $('set-title').value = c.title || '';
+    $('set-wm-on').checked = c.wm_enabled;
+    $('set-wm-text').value = c.wm_text || '';
+    $('set-wm-name').value = c.wm_name || '';
+    $('set-phone-on').checked = c.phone_enabled;
+    $('set-phone').value = c.phone || '';
+    $('set-qr-on').checked = c.qr_enabled;
+    $('set-wxid').value = c.wx_id || '';
+  } catch (e) {}
+}
+$('save-settings').addEventListener('click', async () => {
+  const btn = $('save-settings');
+  btn.disabled = true; btn.textContent = '保存中…';
+  try {
+    const d = await API.req('/api/config', {
+      method: 'PUT',
+      json: {
+        title: $('set-title').value,
+        wm_enabled: $('set-wm-on').checked,
+        wm_text: $('set-wm-text').value,
+        wm_name: $('set-wm-name').value,
+        phone_enabled: $('set-phone-on').checked,
+        phone: $('set-phone').value,
+        qr_enabled: $('set-qr-on').checked,
+        wx_id: $('set-wxid').value,
+      },
+    });
+    $('settings-msg').textContent = d.ok ? '已保存 ✓' : d.error || '保存失败';
+  } catch (e) { $('settings-msg').textContent = '保存失败'; }
+  btn.disabled = false; btn.textContent = '保存设置';
+  setTimeout(() => ($('settings-msg').textContent = ''), 2500);
+});
+
+// ---------- 文件信息 ----------
+async function loadFiles() {
+  try {
+    const d = await API.req('/api/config?fresh=1');
+    if (d.ok && d.manifest) {
+      const m = d.manifest;
+      $('pdf-info').innerHTML =
+        '当前作品集：<b>v' + m.version + '</b> · 共 ' + m.count + ' 页';
+    } else {
+      $('pdf-info').textContent = '尚未上传作品集';
+    }
+    if (d.ok && d.qr_version > 0) {
+      $('qr-preview').src = '/api/file/qrcode?v=' + d.qr_version;
+    }
+  } catch (e) {}
+}
+
+// ---------- PDF 上传（浏览器渲染成图片 → 上传） ----------
+function setP(barEl, pct) {
+  barEl.style.display = 'block';
+  barEl.firstElementChild.style.width = Math.round(pct) + '%';
+}
+async function renderPdfToImages(file, onProgress) {
+  await ensurePdfjs();
+  const buf = await file.arrayBuffer();
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+  const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+  const n = doc.numPages;
+  if (n < 1) throw new Error('PDF 里没有页面');
+  if (n > 500) throw new Error('最多支持 500 页的 PDF');
+  const blobs = [];
+  const dims = [];
+  for (let i = 1; i <= n; i++) {
+    const page = await doc.getPage(i);
+    const vp1 = page.getViewport({ scale: 1 });
+    let scale = Math.min(2000 / vp1.width, Math.sqrt(12e6 / (vp1.width * vp1.height)), 4);
+    if (scale < 0.05) scale = 0.05;
+    const vp = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.floor(vp.width);
+    canvas.height = Math.floor(vp.height);
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.95));
+    if (!blob) throw new Error('第 ' + i + ' 页渲染失败');
+    if (blob.size > 8 * 1024 * 1024) throw new Error('第 ' + i + ' 页图片过大，请换更小的 PDF');
+    blobs.push(blob);
+    dims.push({ w: canvas.width, h: canvas.height });
+    canvas.width = 0; canvas.height = 0;
+    onProgress && onProgress(i, n);
+    await new Promise((r) => setTimeout(r, 0));
+  }
+  return { blobs, dims, count: n };
+}
+$('pdf-pick').addEventListener('click', () => $('pdf-file').click());
+$('pdf-file').addEventListener('change', () => {
+  const f = $('pdf-file').files[0];
+  if (f) $('pdf-upload-status').textContent = '已选择：' + f.name + '（' + (f.size / 1048576).toFixed(1) + 'MB），点击「上传替换」开始';
+});
+$('pdf-upload').addEventListener('click', async () => {
+  const f = $('pdf-file').files[0];
+  const status = $('pdf-upload-status');
+  if (!f) { status.textContent = '请先选择 PDF 文件'; return; }
+  const btn = $('pdf-upload');
+  const bar = $('pdf-progress');
+  btn.disabled = true; btn.textContent = '处理中…';
+  try {
+    setP(bar, 2); status.textContent = '正在解析 PDF…';
+    const { blobs, dims, count } = await renderPdfToImages(f, (i, n) => {
+      setP(bar, 2 + (i / n) * 55);
+      status.textContent = '正在渲染第 ' + i + '/' + n + ' 页…';
+    });
+    setP(bar, 60); status.textContent = '正在上传…';
+    const beginFd = new FormData();
+    beginFd.append('type', 'pages_begin');
+    const begin = await postForm(beginFd);
+    const version = begin.version;
+    for (let i = 0; i < blobs.length; i++) {
+      const fd = new FormData();
+      fd.append('type', 'page_image');
+      fd.append('version', String(version));
+      fd.append('index', String(i + 1));
+      fd.append('file', blobs[i], (i + 1) + '.jpg');
+      await postForm(fd);
+      setP(bar, 60 + ((i + 1) / blobs.length) * 35);
+      status.textContent = '正在上传 ' + (i + 1) + '/' + blobs.length + ' 页…';
+    }
+    setP(bar, 97); status.textContent = '正在完成…';
+    const fd = new FormData();
+    fd.append('type', 'pages_manifest');
+    fd.append('manifest', JSON.stringify({ version, count, pages: dims }));
+    await postForm(fd);
+    setP(bar, 100);
+    status.textContent = '上传完成 ✓ 前台已自动使用新内容';
+    pgState = null;
+    loadFiles();
+    $('pdf-file').value = '';
+  } catch (e) {
+    status.textContent = '上传失败：' + (e.message || e);
+  }
+  setTimeout(() => { bar.style.display = 'none'; }, 2000);
+  btn.disabled = false; btn.textContent = '上传替换';
+});
+
+// ---------- 二维码上传 ----------
+function uploadQr(form) {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/upload');
+    xhr.setRequestHeader('Authorization', 'Bearer ' + API.token);
+    xhr.upload.addEventListener('progress', (e) => {
+      if (e.lengthComputable) setP($('qr-progress'), (e.loaded / e.total) * 100);
+    });
+    xhr.addEventListener('load', () => {
+      let d = {};
+      try { d = JSON.parse(xhr.responseText); } catch (e) {}
+      if (xhr.status === 401) { showLogin(); resolve(false); return; }
+      $('qr-upload-status').textContent = d.ok ? '上传成功 ✓' : d.error || '上传失败';
+      if (d.ok) loadFiles();
+      resolve(d.ok);
+    });
+    xhr.addEventListener('error', () => {
+      $('qr-upload-status').textContent = '上传失败，请检查网络后重试';
+      resolve(false);
+    });
+    xhr.send(form);
+  });
+}
+$('qr-pick').addEventListener('click', () => $('qr-file').click());
+$('qr-file').addEventListener('change', () => {
+  const f = $('qr-file').files[0];
+  if (f) $('qr-upload-status').textContent = '已选择：' + f.name;
+});
+$('qr-upload').addEventListener('click', async () => {
+  const f = $('qr-file').files[0];
+  if (!f) { $('qr-upload-status').textContent = '请先选择图片'; return; }
+  const btn = $('qr-upload');
+  btn.disabled = true; btn.textContent = '上传中…';
+  const form = new FormData();
+  form.append('type', 'qrcode');
+  form.append('file', f);
+  await uploadQr(form);
+  btn.disabled = false; btn.textContent = '上传替换';
+  $('qr-file').value = '';
+  setTimeout(() => { $('qr-progress').style.display = 'none'; }, 1500);
+});
+
+// ---------- 页面管理 ----------
+let pgState = null;
+let pgVersion = 0;
+async function initPageManager() {
+  if (pgState) return;
+  try {
+    const d = await API.req('/api/config?fresh=1');
+    if (!d.ok || !d.manifest || !d.manifest.count) {
+      $('pg-loading').textContent = '尚未上传 PDF，请先在「文件管理」上传';
+      return;
+    }
+    pgVersion = d.manifest.version;
+    const cfgPages = d.config.pages;
+    const all = Array.from({ length: d.manifest.count }, (_, i) => i + 1);
+    const onSet = Array.isArray(cfgPages) && cfgPages.length ? new Set(cfgPages) : null;
+    pgState = all.map((no) => ({ no, on: onSet ? onSet.has(no) : true }));
+    renderPgGrid();
+  } catch (e) {
+    $('pg-loading').textContent = '加载失败，请刷新重试';
+  }
+}
+function renderPgGrid() {
+  $('pg-loading').style.display = 'none';
+  const grid = $('pg-grid');
+  grid.innerHTML = '';
+  pgState.forEach((item, idx) => {
+    const el = document.createElement('div');
+    el.className = 'pg-item' + (item.on ? '' : ' off');
+    el.dataset.idx = idx;
+    el.innerHTML =
+      '<div class="thumb"><img loading="lazy" decoding="async" src="/api/file/page/v' + pgVersion + '/' + item.no + '.jpg" draggable="false"><span class="no">' + item.no + '</span></div>' +
+      '<div class="ops">' +
+      '<button data-op="off" title="显示/隐藏">' + (item.on ? '👁' : '🚫') + '</button>' +
+      '<span>' +
+      '<button data-op="up" title="前移">↑</button>' +
+      '<button data-op="down" title="后移">↓</button>' +
+      '</span></div>' +
+      '<div class="name">第 ' + item.no + ' 页</div>';
+    grid.appendChild(el);
+  });
+}
+$('pg-grid').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-op]');
+  if (!btn || !pgState) return;
+  const itemEl = btn.closest('.pg-item');
+  const idx = +itemEl.dataset.idx;
+  const op = btn.dataset.op;
+  const item = pgState[idx];
+  if (op === 'off') {
+    item.on = !item.on;
+    itemEl.classList.toggle('off', !item.on);
+    btn.textContent = item.on ? '👁' : '🚫';
+  } else if (op === 'up' && idx > 0) {
+    [pgState[idx - 1], pgState[idx]] = [pgState[idx], pgState[idx - 1]];
+    renderPgGrid();
+  } else if (op === 'down' && idx < pgState.length - 1) {
+    [pgState[idx], pgState[idx + 1]] = [pgState[idx + 1], pgState[idx]];
+    renderPgGrid();
+  }
+});
+$('pg-all').addEventListener('click', () => {
+  if (!pgState) return;
+  pgState.forEach((x) => (x.on = true));
+  renderPgGrid();
+});
+$('pg-reset').addEventListener('click', () => {
+  if (!pgState) return;
+  pgState.sort((a, b) => a.no - b.no);
+  pgState.forEach((x) => (x.on = true));
+  renderPgGrid();
+});
+$('pg-save').addEventListener('click', async () => {
+  if (!pgState) return;
+  const pages = pgState.filter((x) => x.on).map((x) => x.no);
+  const btn = $('pg-save');
+  btn.disabled = true; btn.textContent = '保存中…';
+  try {
+    const d = await API.req('/api/config', { method: 'PUT', json: { pages } });
+    $('pg-msg').textContent = d.ok ? '已保存 ✓ 共展示 ' + pages.length + ' 页' : d.error || '保存失败';
+  } catch (e) { $('pg-msg').textContent = '保存失败'; }
+  btn.disabled = false; btn.textContent = '保存页面设置';
+  setTimeout(() => ($('pg-msg').textContent = ''), 3000);
+});
+
+// ---------- 统计 ----------
+function rankRender(el, list) {
+  el.innerHTML = '';
+  if (!list || !list.length) {
+    el.innerHTML = '<div style="color:#a0a0a6;font-size:13px">暂无数据</div>';
+    return;
+  }
+  const max = Math.max(...list.map((x) => x.c));
+  list.forEach((x) => {
+    const d = document.createElement('div');
+    d.className = 'rank-item';
+    d.innerHTML =
+      '<span class="name" title="' + (x.k || '') + '">' + (x.k || '未知') + '</span>' +
+      '<div class="track"><div class="fill" style="width:' + Math.max(3, (x.c / max) * 100) + '%"></div></div>' +
+      '<span class="num">' + x.c + '</span>';
+    el.appendChild(d);
+  });
+}
+function fmtTime(ts) {
+  const d = new Date(ts);
+  const p = (n) => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function fmtVisitTime(ts) {
+  const diff = Date.now() - ts;
+  if (diff < 60 * 1000) return '刚刚';
+  if (diff < 3600 * 1000) return Math.floor(diff / 60000) + '分钟前';
+  if (diff < 24 * 3600 * 1000) return Math.floor(diff / 3600000) + '小时前';
+  const d = new Date(ts);
+  const p = (n) => String(n).padStart(2, '0');
+  return p(d.getMonth() + 1) + '/' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+}
+function maskIp(ip) {
+  if (!ip) return '未知IP';
+  if (ip.includes('.')) {
+    const parts = ip.split('.');
+    if (parts.length === 4) return parts[0] + '.*.*.' + parts[3];
+    return ip;
+  }
+  const g = ip.split(':');
+  if (g.length >= 4) return g.slice(0, 2).join(':') + ':*:' + g.slice(-2).join(':');
+  return ip;
+}
+async function loadStats() {
+  try {
+    const d = await API.req('/api/stats');
+    if (!d.ok) return;
+    const s = d.stats;
+    $('stat-cards').innerHTML =
+      '<div class="stat-card"><div class="v">' + (s.total.c || 0) + '</div><div class="k">总访问量</div></div>' +
+      '<div class="stat-card"><div class="v">' + (s.total.u || 0) + '</div><div class="k">独立访客</div></div>' +
+      '<div class="stat-card"><div class="v">' + (s.today.c || 0) + '</div><div class="k">今日访问</div></div>' +
+      '<div class="stat-card"><div class="v">' + (s.week.c || 0) + '</div><div class="k">近 7 天访问</div></div>';
+
+    const chart = $('chart');
+    chart.innerHTML = '';
+    const byDay = {};
+    (s.byDay || []).forEach((x) => (byDay[x.d] = x));
+    const days = [];
+    const now = new Date();
+    for (let i = 13; i >= 0; i--) {
+      const dt = new Date(now.getTime() - i * 86400000 + 8 * 3600000);
+      days.push(dt.toISOString().slice(0, 10));
+    }
+    const maxC = Math.max(1, ...days.map((d) => (byDay[d] ? byDay[d].c : 0)));
+    days.forEach((d) => {
+      const c = byDay[d] ? byDay[d].c : 0;
+      const w = document.createElement('div');
+      w.className = 'bar-w';
+      w.title = d + '：' + c + ' 次访问';
+      w.innerHTML =
+        '<div class="bar" style="height:' + Math.max(2, (c / maxC) * 110) + 'px"></div>' +
+        '<div class="lbl">' + d.slice(5) + '</div>';
+      chart.appendChild(w);
+    });
+
+    rankRender($('rank-device'), s.byDevice);
+    rankRender($('rank-region'), s.byRegion);
+
+    const list = $('visit-list');
+    list.innerHTML = '';
+    if (!s.recent || !s.recent.length) {
+      list.innerHTML = '<div class="loading-inline">暂无访客记录</div>';
+    } else {
+      s.recent.forEach((v) => {
+        const row = document.createElement('div');
+        row.className = 'v-row';
+        let region = v.region_cn || '未知';
+        region = region.replace(/^(.+)\1$/, '$1');
+        row.innerHTML =
+          '<span class="v-who">' +
+          '<span class="v-ip">' + maskIp(v.ip) + '</span>' +
+          '<span class="v-region">（' + region + '）</span>' +
+          '<span class="v-dev">' + (v.device || '-') + '</span>' +
+          '</span>' +
+          '<span class="v-time" title="' + fmtTime(v.ts) + '">' + fmtVisitTime(v.ts) + '</span>';
+        list.appendChild(row);
+      });
+    }
+  } catch (e) {}
+}
+
+// ---------- 修改密码 ----------
+$('save-passwd').addEventListener('click', async () => {
+  const p1 = $('np1').value, p2 = $('np2').value;
+  if (p1.length < 8) { $('passwd-msg').style.color = '#e02020'; $('passwd-msg').textContent = '新密码至少 8 位'; return; }
+  if (p1 !== p2) { $('passwd-msg').style.color = '#e02020'; $('passwd-msg').textContent = '两次输入不一致'; return; }
+  const btn = $('save-passwd');
+  btn.disabled = true; btn.textContent = '提交中…';
+  try {
+    const d = await API.req('/api/auth', { method: 'PUT', json: { new_password: p1 } });
+    $('passwd-msg').style.color = d.ok ? '#34c759' : '#e02020';
+    $('passwd-msg').textContent = d.ok ? '修改成功 ✓ 请牢记新密码' : d.error || '修改失败';
+    if (d.ok) { $('np1').value = ''; $('np2').value = ''; }
+  } catch (e) { $('passwd-msg').textContent = '修改失败'; }
+  btn.disabled = false; btn.textContent = '修改密码';
+});
+
+// ---------- 启动 ----------
+(async () => {
+  if (API.token) {
+    try {
+      const d = await API.req('/api/stats');
+      if (d.ok) { showApp(); return; }
+    } catch (e) {}
+  }
+  showLogin();
+})();
+</script>
+</body>
+</html>

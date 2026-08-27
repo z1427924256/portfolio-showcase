@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>作品集系统 · ZHAOQIANG</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro SC", "SF Pro Text", "PingFang SC",
+      "Noto Sans CJK SC", "WenQuanYi Micro Hei", "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: #1c1c1e;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+    position: relative;
+    background: linear-gradient(180deg, #fafbfd 0%, #f2f4f8 58%, #eceff4 100%);
+    background-attachment: fixed;
+  }
+  /* 极浅光斑层 */
+  .glow { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+  .glow i { position: absolute; border-radius: 50%; filter: blur(110px); }
+  .glow .a { width: 58vw; height: 58vw; background: rgba(175, 190, 220, .30); top: -20vw; left: -16vw; }
+  .glow .b { width: 50vw; height: 50vw; background: rgba(200, 195, 225, .28); bottom: -14vw; right: -12vw; }
+  .glow .c { width: 42vw; height: 42vw; background: rgba(185, 205, 215, .22); top: 40%; left: 58%; }
+
+  /* ---------- 顶部导航（磨砂玻璃） ---------- */
+  .nav {
+    position: sticky; top: 0; z-index: 10;
+    padding: max(10px, env(safe-area-inset-top)) 18px 10px;
+    background: rgba(250, 251, 253, 0.72);
+    backdrop-filter: blur(24px) saturate(1.6);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    border-bottom: .5px solid rgba(52, 64, 92, 0.08);
+  }
+  .nav-in {
+    max-width: 760px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 9px;
+    font-size: 14.5px; font-weight: 700; letter-spacing: -.01em; color: #1c1c1e;
+    text-decoration: none;
+  }
+  .brand .mark {
+    width: 26px; height: 26px; border-radius: 8px;
+    background: linear-gradient(135deg, #0a84ff, #5856d6);
+    color: #fff; font-size: 13px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 3px 8px rgba(10, 132, 255, .28);
+  }
+  .nav-links { display: flex; align-items: center; gap: 4px; }
+  .nav-links a {
+    font-size: 13.5px; font-weight: 500; color: #555a66;
+    text-decoration: none;
+    padding: 7px 11px; border-radius: 9px;
+    transition: background .15s;
+  }
+  .nav-links a:hover { background: rgba(52, 64, 92, 0.06); }
+  .nav-links a.login {
+    color: #007aff; font-weight: 600;
+    border: .5px solid rgba(0, 122, 255, 0.35);
+    background: rgba(0, 122, 255, 0.07);
+  }
+  .nav-links a.login:hover { background: rgba(0, 122, 255, 0.12); }
+
+  .wrap {
+    position: relative; z-index: 1;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: clamp(28px, 6vw, 56px) 18px max(56px, env(safe-area-inset-bottom));
+  }
+
+  /* ---------- Hero ---------- */
+  .hero { text-align: center; padding: clamp(16px, 4vw, 36px) 8px 10px; }
+  .hero .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; letter-spacing: .05em;
+    color: #5856d6;
+    background: rgba(88, 86, 214, 0.09);
+    border: .5px solid rgba(88, 86, 214, 0.22);
+    padding: 5px 12px; border-radius: 100px;
+    margin-bottom: 18px;
+  }
+  .hero .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #5856d6; }
+  .hero h1 {
+    font-size: clamp(30px, 7.5vw, 42px);
+    font-weight: 800; letter-spacing: -.02em; line-height: 1.2;
+  }
+  .hero .sub {
+    margin: 16px auto 0;
+    font-size: 15px; line-height: 1.8; color: #6d7280;
+    max-width: 32em;
+  }
+  .hero .cta { margin-top: 26px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    height: 48px; padding: 0 26px;
+    border-radius: 13px;
+    font-size: 15px; font-weight: 600; font-family: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background .15s, transform .1s, box-shadow .15s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary {
+    background: #007aff; color: #fff; border: none;
+    box-shadow: 0 8px 20px rgba(0, 122, 255, 0.30);
+  }
+  .btn-primary:hover { background: #0a84ff; }
+  .btn-glass {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: .5px solid rgba(52, 64, 92, 0.12);
+    color: #1c1c1e;
+    box-shadow: 0 4px 14px rgba(52, 64, 92, 0.08);
+  }
+  .btn-glass:hover { background: rgba(255, 255, 255, 0.9); }
+  .btn svg { width: 16px; height: 16px; }
+
+  /* ---------- 小节标题 ---------- */
+  .sec-head { padding: clamp(34px, 7vw, 52px) 8px 16px; }
+  .sec-head .num {
+    font-size: 12px; font-weight: 700; letter-spacing: .16em;
+    color: #007aff; text-transform: uppercase;
+  }
+  .sec-head h2 {
+    margin-top: 8px;
+    font-size: clamp(22px, 5vw, 28px);
+    font-weight: 800; letter-spacing: -.02em;
+  }
+  .sec-head p { margin-top: 10px; font-size: 14.5px; line-height: 1.75; color: #6d7280; }
+
+  /* ---------- 白色磨砂玻璃卡片 ---------- */
+  .card {
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(32px) saturate(1.6);
+    -webkit-backdrop-filter: blur(32px) saturate(1.6);
+    border: .5px solid rgba(255, 255, 255, 0.95);
+    border-radius: 22px;
+    box-shadow: 0 8px 30px rgba(52, 64, 92, 0.08), 0 1px 2px rgba(52, 64, 92, 0.04);
+    overflow: hidden;
+  }
+
+  /* ---------- 功能列表（iOS 设置风格行） ---------- */
+  .list { padding: 2px 0; }
+  .row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 13px 20px;
+    position: relative;
+  }
+  .row + .row::before {
+    content: ''; position: absolute; top: 0; left: 66px; right: 0;
+    height: .5px; background: rgba(60, 72, 100, 0.09);
+  }
+  .row .ico {
+    flex: none;
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 0 0 .5px rgba(255,255,255,.4);
+  }
+  .row .ico svg { width: 18px; height: 18px; }
+  .row .txt { flex: 1; min-width: 0; }
+  .row .txt b { display: block; font-size: 15px; font-weight: 600; color: #1c1c1e; }
+  .row .txt span { display: block; margin-top: 2px; font-size: 12.5px; line-height: 1.55; color: #7d828e; }
+
+  .i-blue   { background: linear-gradient(180deg, #4aa3ff, #007aff); }
+  .i-green  { background: linear-gradient(180deg, #55d06a, #30b94a); }
+  .i-indigo { background: linear-gradient(180deg, #7a7aff, #5856d6); }
+  .i-orange { background: linear-gradient(180deg, #ffb340, #ff9500); }
+  .i-teal   { background: linear-gradient(180deg, #53d4d0, #30b0c8); }
+  .i-pink   { background: linear-gradient(180deg, #ff7a9c, #ff375f); }
+
+  /* ---------- 场景网格 ---------- */
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .scene { padding: 18px 16px; }
+  .scene .ico {
+    width: 34px; height: 34px; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 0 0 .5px rgba(255,255,255,.4);
+    margin-bottom: 12px;
+  }
+  .scene .ico svg { width: 18px; height: 18px; }
+  .scene b { display: block; font-size: 14.5px; font-weight: 700; }
+  .scene p { margin-top: 5px; font-size: 12.5px; line-height: 1.6; color: #7d828e; }
+
+  /* ---------- 优势（三列） ---------- */
+  .advs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .adv { padding: 18px 16px; text-align: center; }
+  .adv .ring {
+    width: 42px; height: 42px; border-radius: 50%;
+    margin: 0 auto 12px;
+    background: rgba(0, 122, 255, 0.09);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .adv .ring svg { width: 20px; height: 20px; }
+  .adv b { display: block; font-size: 14.5px; font-weight: 700; }
+  .adv p { margin-top: 6px; font-size: 12px; line-height: 1.65; color: #7d828e; }
+
+  /* ---------- 后台入口 ---------- */
+  .admin-hero { padding: clamp(22px, 5vw, 34px); display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .admin-hero .txt { flex: 1; min-width: 240px; }
+  .admin-hero h3 { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+  .admin-hero .desc { margin-top: 8px; font-size: 13.5px; line-height: 1.75; color: #6d7280; }
+  .admin-tags { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 7px; }
+  .admin-tags span {
+    font-size: 12px; font-weight: 500; color: #3a3f4d;
+    background: rgba(255, 255, 255, 0.85);
+    border: .5px solid rgba(52, 64, 92, 0.08);
+    border-radius: 100px; padding: 5px 11px;
+  }
+  .admin-hero .act { flex: none; }
+  .admin-hero .btn { width: 100%; }
+  .admin-lock {
+    display: inline-flex; align-items: center; gap: 5px;
+    margin-top: 10px; font-size: 12px; color: #98a0b0;
+  }
+  .admin-lock svg { width: 12px; height: 12px; }
+
+  /* ---------- 技术栈 ---------- */
+  .stack { padding: 16px 20px 18px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    font-size: 12.5px; font-weight: 500; color: #3a3f4d;
+    background: rgba(255, 255, 255, 0.85);
+    border: .5px solid rgba(52, 64, 92, 0.08);
+    box-shadow: 0 1px 3px rgba(52, 64, 92, 0.05);
+    border-radius: 100px; padding: 6px 13px;
+  }
+  .stack-note { padding: 0 20px 16px; font-size: 12.5px; color: #98a0b0; line-height: 1.6; }
+
+  /* ---------- 声明 ---------- */
+  .declare { padding: 18px 20px; display: flex; gap: 14px; }
+  .declare .badge {
+    flex: none;
+    width: 36px; height: 36px; border-radius: 10px;
+    background: rgba(0, 122, 255, 0.10);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .declare .badge svg { width: 19px; height: 19px; }
+  .declare p { font-size: 13.5px; line-height: 1.8; color: #555a66; }
+  .declare p b { color: #1c1c1e; }
+
+  /* ---------- 申请表单 ---------- */
+  .apply { padding: 24px 22px 22px; }
+  .apply h3 { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
+  .apply .desc { margin-top: 8px; font-size: 14px; line-height: 1.7; color: #6d7280; }
+  .field { margin-top: 18px; display: flex; gap: 10px; }
+  .field input {
+    flex: 1; min-width: 0;
+    height: 48px; padding: 0 17px;
+    border: .5px solid rgba(60, 72, 100, 0.14);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    font-size: 15px; font-family: inherit; color: #1c1c1e;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+    -webkit-user-select: text; user-select: text;
+  }
+  .field input::placeholder { color: #b3b8c4; }
+  .field input:focus { border-color: #007aff; box-shadow: 0 0 0 3.5px rgba(0, 122, 255, 0.14); }
+  .field button {
+    flex: none; height: 48px; padding: 0 26px;
+    border: none; border-radius: 12px;
+    background: #007aff; color: #fff;
+    font-size: 15px; font-weight: 600; font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(0, 122, 255, 0.28);
+    transition: background .15s, transform .1s, opacity .15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .field button:hover { background: #0a84ff; }
+  .field button:active { transform: scale(.97); }
+  .field button:disabled { opacity: .55; }
+  .msg { margin-top: 13px; font-size: 13.5px; line-height: 1.6; min-height: 18px; }
+  .msg.ok { color: #30a14e; }
+  .msg.err { color: #e0356b; }
+
+  /* ---------- 页脚 ---------- */
+  .foot {
+    margin-top: 44px; text-align: center;
+    font-size: 12.5px; line-height: 2.2; color: #a5aab6;
+  }
+  .foot .links { display: flex; justify-content: center; gap: 22px; margin-bottom: 4px; }
+  .foot a { color: #007aff; text-decoration: none; font-weight: 600; }
+  .foot a:active { opacity: .6; }
+
+  @media (max-width: 560px) {
+    .nav-links a:not(.login) { display: none; }
+    .grid { grid-template-columns: 1fr; }
+    .advs { grid-template-columns: 1fr; }
+    .field { flex-direction: column; }
+    .field button { width: 100%; }
+    .row { padding: 12px 16px; }
+    .row + .row::before { left: 62px; }
+    .declare { padding: 16px; }
+    .apply { padding: 20px 16px 18px; }
+    .admin-hero { flex-direction: column; align-items: stretch; }
+    .admin-hero .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="glow"><i class="a"></i><i class="b"></i><i class="c"></i></div>
+
+<!-- 导航 -->
+<nav class="nav">
+  <div class="nav-in">
+    <a class="brand" href="/"><span class="mark">Z</span>ZHAOQIANG</a>
+    <div class="nav-links">
+      <a href="#features">功能</a>
+      <a href="#scenes">场景</a>
+      <a href="#admin">后台</a>
+      <a class="login" href="/admin.html">后台登录</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="badge"><span class="dot"></span>独立设计 · 独立开发</div>
+    <h1>简单、好用的<br>在线作品集系统</h1>
+    <p class="sub">一套为求职场景打造的作品集系统——极速加载、沉浸阅读、访客洞察，从页面设计到后端服务全部独立完成。</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="/">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+        进入作品集
+      </a>
+      <a class="btn btn-glass" href="#admin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#555a66" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2.5"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        管理后台
+      </a>
+    </div>
+  </section>
+
+  <!-- 产品功能 -->
+  <div class="sec-head" id="features">
+    <div class="num">FEATURES</div>
+    <h2>产品功能</h2>
+    <p>围绕"让作品被更好地看见"设计的六个核心能力。</p>
+  </div>
+  <div class="card list">
+    <div class="row">
+      <div class="ico i-blue"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg></div>
+      <div class="txt"><b>极速加载</b><span>作品预渲染为高清图片，全球边缘节点就近分发，首屏秒级呈现</span></div>
+    </div>
+    <div class="row">
+      <div class="ico i-indigo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3 10 8.2 5.2a1.4 1.4 0 0 0 1.6 0L21 10"/></svg></div>
+      <div class="txt"><b>沉浸式阅读</b><span>点击任意页面进入全屏模式，双指缩放查看设计细节</span></div>
+    </div>
+    <div class="row">
+      <div class="ico i-green"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linejoin="round"><path d="M12 2s8 3.7 8 10v5l-8 5-8-5v-5c0-6.3 8-10 8-10z"/><path d="m9 12 2 2 4-4" stroke-linecap="round"/></svg></div>
+      <div class="txt"><b>内容保护</b><span>禁用下载与右键，原创水印全程可见，作品只展示、不外流</span></div>
+    </div>
+    <div class="row">
+      <div class="ico i-teal"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"><path d="M4 19V10M9.3 19V4M14.6 19v-7M20 19V7"/></svg></div>
+      <div class="txt"><b>访问统计</b><span>自动记录访客地区、设备与到访时间，投递进展心中有数</span></div>
+    </div>
+    <div class="row">
+      <div class="ico i-orange"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg></div>
+      <div class="txt"><b>在线管理</b><span>作品、联系方式、页面顺序随时在线更新，无需重新部署</span></div>
+    </div>
+    <div class="row">
+      <div class="ico i-pink"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.13 1 .37 2 .72 2.8a2 2 0 0 1-.45 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.45c.9.35 1.9.6 2.8.72A2 2 0 0 1 22 16.9z"/></svg></div>
+      <div class="txt"><b>一键联系</b><span>电话直拨、微信扫码或复制微信号跳转，沟通零门槛</span></div>
+    </div>
+  </div>
+
+  <!-- 适用场景 -->
+  <div class="sec-head" id="scenes">
+    <div class="num">SCENARIOS</div>
+    <h2>适用场景</h2>
+    <p>不止于作品展示，覆盖求职全流程。</p>
+  </div>
+  <div class="grid">
+    <div class="card scene">
+      <div class="ico i-blue"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h9a2 2 0 0 1 2 2v14H8z"/><path d="M8 4H5a1 1 0 0 0-1 1v15h4M12 9h4m-4 4h4"/></svg></div>
+      <b>求职投递</b>
+      <p>简历附上链接或二维码，面试官点开即看，高清作品随时呈现</p>
+    </div>
+    <div class="card scene">
+      <div class="ico i-indigo"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8m-4-4v4"/></svg></div>
+      <b>面试演示</b>
+      <p>现场全屏展示作品细节，缩放流畅不卡顿，专业形象加分</p>
+    </div>
+    <div class="card scene">
+      <div class="ico i-teal"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></div>
+      <b>线上分享</b>
+      <p>微信、邮件随时发送链接，手机电脑自适应，打开即浏览</p>
+    </div>
+    <div class="card scene">
+      <div class="ico i-orange"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5C3 4.7 3.7 4 4.5 4h2.7c.7 0 1.3.5 1.5 1.2l.6 2.7c.1.6-.1 1.2-.6 1.5l-1.7 1a13 13 0 0 0 6.2 6.2l1-1.7c.3-.5.9-.7 1.5-.6l2.7.6c.7.2 1.2.8 1.2 1.5v2.7c0 .8-.7 1.5-1.5 1.5C10.6 21 3 13.4 3 5.5z"/></svg></div>
+      <b>远程沟通</b>
+      <p>作品页一键拨号、扫码加微信，对方感兴趣时即刻取得联系</p>
+    </div>
+  </div>
+
+  <!-- 系统优势 -->
+  <div class="sec-head">
+    <div class="num">ADVANTAGES</div>
+    <h2>系统优势</h2>
+  </div>
+  <div class="advs">
+    <div class="card adv">
+      <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg></div>
+      <b>极速稳定</b>
+      <p>Cloudflare 全球边缘网络，300+ 节点就近分发，访问速度全球一致</p>
+    </div>
+    <div class="card adv">
+      <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2.1" stroke-linejoin="round"><path d="M12 2s8 3.7 8 10v5l-8 5-8-5v-5c0-6.3 8-10 8-10z"/><path d="m9 12 2 2 4-4" stroke-linecap="round"/></svg></div>
+      <b>数据安全</b>
+      <p>Serverless 架构无暴露面，内容云端加密存储，支持防下载保护</p>
+    </div>
+    <div class="card adv">
+      <div class="ring"><svg viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg></div>
+      <b>独立可控</b>
+      <p>从 UI 到后端独立设计开发，无第三方模板依赖，功能按需迭代</p>
+    </div>
+  </div>
+
+  <!-- 管理后台入口 -->
+  <div class="sec-head" id="admin">
+    <div class="num">ADMIN</div>
+    <h2>管理后台</h2>
+    <p>所有内容在线管理，改完即生效。</p>
+  </div>
+  <div class="card admin-hero">
+    <div class="txt">
+      <h3>一个后台，管理全部</h3>
+      <p class="desc">无需任何代码基础，浏览器打开即可完成日常维护。</p>
+      <div class="admin-tags">
+        <span>作品上传替换</span>
+        <span>水印与联系方式</span>
+        <span>页面排序隐藏</span>
+        <span>访客统计</span>
+        <span>使用申请</span>
+      </div>
+      <div class="admin-lock">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#98a0b0" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        仅限管理员访问 · 密码登录
+      </div>
+    </div>
+    <div class="act">
+      <a class="btn btn-primary" href="/admin.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2.5"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        进入管理后台
+      </a>
+    </div>
+  </div>
+
+  <!-- 技术栈 -->
+  <div class="sec-head">
+    <div class="num">TECH STACK</div>
+    <h2>技术实现</h2>
+  </div>
+  <div class="card">
+    <div class="stack">
+      <span class="pill">Cloudflare Pages</span>
+      <span class="pill">Functions</span>
+      <span class="pill">D1 数据库</span>
+      <span class="pill">KV 存储</span>
+      <span class="pill">边缘缓存</span>
+      <span class="pill">零依赖前端</span>
+    </div>
+    <div class="stack-note">整站运行在 Serverless 架构上，无服务器运维成本，全球访问速度一致。</div>
+  </div>
+
+  <!-- 声明 -->
+  <div class="sec-head">
+    <div class="num">NOTICE</div>
+    <h2>版权说明</h2>
+  </div>
+  <div class="card">
+    <div class="declare">
+      <div class="badge"><svg viewBox="0 0 24 24" fill="none" stroke="#007aff" stroke-width="2.1" stroke-linejoin="round"><path d="M12 2s8 3.7 8 10v5l-8 5-8-5v-5c0-6.3 8-10 8-10z"/><path d="m9 12 2 2 4-4" stroke-linecap="round"/></svg></div>
+      <p>本系统由 <b>赵强</b> 独立设计与开发，仅供本人求职展示使用。作品中涉及的品牌与案例，其版权归各自所有方。</p>
+    </div>
+  </div>
+
+  <!-- 申请使用 -->
+  <div class="sec-head">
+    <div class="num">CONTACT</div>
+    <h2>获取同款</h2>
+  </div>
+  <div class="card">
+    <div class="apply">
+      <h3>想拥有一套同款作品集？</h3>
+      <p class="desc">留下你的邮箱，我会尽快与你联系，分享这套系统的搭建方式。</p>
+      <form class="field" id="req-form">
+        <input type="email" id="req-email" placeholder="you@example.com" autocomplete="email" maxlength="100" required>
+        <button type="submit" id="req-btn">提交</button>
+      </form>
+      <div class="msg" id="req-msg"></div>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <div class="links">
+      <a href="/">返回作品集</a>
+      <a href="/admin.html">管理后台</a>
+    </div>
+    © 2026 ZHAOQIANG · Designed &amp; built by 赵强
+  </footer>
+</div>
+
+<script>
+(function () {
+  var form = document.getElementById('req-form');
+  var input = document.getElementById('req-email');
+  var btn = document.getElementById('req-btn');
+  var msg = document.getElementById('req-msg');
+  var sending = false;
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    if (sending) return;
+    var email = (input.value || '').trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      msg.className = 'msg err';
+      msg.textContent = '请输入正确的邮箱地址';
+      input.focus();
+      return;
+    }
+    sending = true;
+    btn.disabled = true;
+    btn.textContent = '提交中…';
+    msg.className = 'msg';
+    msg.textContent = '';
+    fetch('/api/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d.ok) {
+          msg.className = 'msg ok';
+          msg.textContent = '已收到，我会尽快与你联系 ✓';
+          form.reset();
+        } else {
+          msg.className = 'msg err';
+          msg.textContent = d.error || '提交失败，请稍后再试';
+        }
+      })
+      .catch(function () {
+        msg.className = 'msg err';
+        msg.textContent = '网络异常，请稍后再试';
+      })
+      .then(function () {
+        sending = false;
+        btn.disabled = false;
+        btn.textContent = '提交';
+      });
+  });
+})();
+</script>
+</body>
+</html>

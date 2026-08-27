@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>作品集</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #f5f5f7; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    overscroll-behavior-y: none;
+    touch-action: pan-y;
+  }
+  .pages {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px 12px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pg {
+    width: 100%;
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+  }
+  .pg img {
+    width: 100%;
+    display: block;
+    pointer-events: none;
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+  .pg canvas { width: 100%; display: block; }
+  .pg .hint {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: #c8c8cd; font-size: 13px;
+  }
+  #loading {
+    position: fixed; inset: 0; z-index: 2000;
+    background: #f5f5f7;
+    display: flex; flex-direction: column; gap: 14px;
+    align-items: center; justify-content: center;
+    color: #86868b; font-size: 14px;
+    transition: opacity .3s ease;
+  }
+  #loading.hide { opacity: 0; pointer-events: none; }
+  #loading .spin {
+    width: 28px; height: 28px;
+    border: 3px solid #d9d9de; border-top-color: #86868b;
+    border-radius: 50%;
+    animation: rot .8s linear infinite;
+  }
+  @keyframes rot { to { transform: rotate(360deg); } }
+
+  /* 底部水印（磨砂胶囊） */
+  .page-footer {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 20px;
+    z-index: 900;
+  }
+  .page-footer .text {
+    background: rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(16px) saturate(1.8);
+    -webkit-backdrop-filter: blur(16px) saturate(1.8);
+    color: #fff;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 5px 15px;
+    border-radius: 6px;
+    white-space: nowrap;
+    max-width: 92vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .page-footer .text b { font-weight: 600; }
+
+  /* 右下角悬浮按钮 */
+  .contact-dock {
+    position: fixed;
+    right: 16px;
+    bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1000;
+  }
+  .contact-dock .cbtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(16px) saturate(1.8);
+    -webkit-backdrop-filter: blur(16px) saturate(1.8);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transition: transform .15s ease, background .15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .contact-dock .cbtn:hover,
+  .contact-dock .cbtn:active { transform: scale(1.08); background: rgba(0, 0, 0, 0.5); }
+  .contact-dock .cbtn svg { width: 18px; height: 18px; fill: #fff; display: block; }
+
+  /* 电话气泡 */
+  .phone-pop {
+    position: fixed;
+    right: 64px;
+    bottom: 52px;
+    z-index: 1100;
+    display: none;
+  }
+  .phone-pop.open { display: block; }
+  .phone-card {
+    background: rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(16px) saturate(1.8);
+    -webkit-backdrop-filter: blur(16px) saturate(1.8);
+    color: #fff;
+    border-radius: 6px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .phone-card a.num {
+    color: #fff; text-decoration: none; font-size: 14px; font-weight: 500;
+  }
+  .phone-card .copy-btn {
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .phone-card .copy-btn:hover { background: rgba(255, 255, 255, 0.22); }
+
+  /* 二维码弹窗（白色卡片，保持原有风格） */
+  .qr-modal {
+    position: fixed; inset: 0; z-index: 1500;
+    background: rgba(0, 0, 0, 0.55);
+    display: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .qr-modal.open { display: flex; }
+  .qr-box {
+    position: relative;
+    background: #fff;
+    border-radius: 14px;
+    padding: 18px 22px 16px;
+    margin: auto;
+    max-width: calc(100vw - 44px);
+    text-align: center;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  }
+  .qr-close {
+    position: absolute; top: 10px; right: 10px;
+    width: 30px; height: 30px;
+    border: none; border-radius: 50%;
+    background: rgba(0, 0, 0, 0.06);
+    color: #55555c;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .qr-close:hover { background: rgba(0, 0, 0, 0.12); }
+  .qr-close svg { width: 15px; height: 15px; fill: currentColor; display: block; }
+  .qr-box img {
+    width: min(240px, 56vw);
+    height: min(240px, 56vw);
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+    border-radius: 6px;
+  }
+  .qr-box .tip {
+    margin-top: 12px;
+    color: #55555c;
+    font-size: 14px;
+  }
+  .wxid-row {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .wxid-row .lbl {
+    color: #55555c;
+    font-size: 13px;
+  }
+  .wxid-row b {
+    color: #111;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: .5px;
+    margin-left: 4px;
+  }
+  .wxid-copy {
+    border: 1px solid #dcdce0;
+    background: #f7f7f9;
+    color: #333;
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .wxid-copy:active { background: #ececf0; }
+  .wx-open {
+    display: block;
+    width: 100%;
+    margin-top: 14px;
+    border: none;
+    background: #07c160;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 11px 0;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .wx-open:active { background: #06ad56; }
+  .wx-tip {
+    margin-top: 10px;
+    color: #8a8a92;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  /* 全屏查看器（点击图片自由放大） */
+  .lb {
+    position: fixed; inset: 0; z-index: 3000;
+    background: #000;
+    display: none;
+    touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+  }
+  .lb.open { display: block; }
+  .lb-stage { position: absolute; inset: 0; overflow: hidden; cursor: grab; }
+  .lb-stage.dragging { cursor: grabbing; }
+  .lb-img {
+    position: absolute; left: 0; top: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+    -webkit-user-drag: none;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .18s ease;
+  }
+  .lb-img.show { opacity: 1; }
+  .lb-spin {
+    position: absolute; left: 50%; top: 50%;
+    width: 30px; height: 30px; margin: -15px 0 0 -15px;
+    border: 3px solid rgba(255,255,255,.25); border-top-color: #fff;
+    border-radius: 50%;
+    animation: rot .8s linear infinite;
+    display: none;
+  }
+  .lb-page {
+    position: absolute; top: 14px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #fff; font-size: 13px; line-height: 1;
+    padding: 8px 14px; border-radius: 6px;
+    z-index: 2;
+  }
+  .lb-btn {
+    position: absolute; z-index: 2;
+    width: 36px; height: 36px; border-radius: 50%;
+    border: none;
+    background: rgba(0,0,0,.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .lb-btn:active { background: rgba(0,0,0,.7); }
+  .lb-btn svg { width: 18px; height: 18px; fill: #fff; display: block; }
+  .lb-close { top: 12px; right: 14px; }
+  .lb-arrow { top: 50%; transform: translateY(-50%); }
+  .lb-arrow.prev { left: 12px; }
+  .lb-arrow.next { right: 12px; }
+  .lb-wm {
+    position: absolute; bottom: 18px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    pointer-events: none;
+    background: rgba(0,0,0,.35);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #fff; font-size: 13px; line-height: 1.5;
+    padding: 5px 15px; border-radius: 6px;
+    white-space: nowrap; max-width: 92vw;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .lb-wm b { font-weight: 600; }
+
+  @media (max-width: 768px) {
+    .contact-dock { bottom: 80px; }
+    .phone-pop { bottom: 126px; }
+  }
+</style>
+</head>
+<body>
+<div id="loading"><div class="spin"></div><div id="loading-text">正在加载…</div></div>
+
+<div class="pages" id="pages"></div>
+
+<div class="page-footer" id="wm" style="display:none">
+  <div class="text" id="wm-text"></div>
+</div>
+
+<div class="contact-dock" id="dock" style="display:none">
+  <button class="cbtn" id="cbtn-phone" aria-label="电话">
+    <svg viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>
+  </button>
+  <button class="cbtn" id="cbtn-wechat" aria-label="微信">
+    <svg viewBox="0 0 24 24"><path d="M8.5 3C4.91 3 2 5.46 2 8.5c0 1.72.94 3.25 2.4 4.26L3.7 14.6c-.1.29.17.57.46.47l2.36-.83c.61.18 1.26.3 1.93.33-.12-.44-.18-.9-.18-1.37 0-2.96 2.8-5.37 6.25-5.37.21 0 .42.01.63.03C14.4 5.15 11.72 3 8.5 3zm-2.3 3.2c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zm4.6 0c.5 0 .9.4.9.9s-.4.9-.9.9-.9-.4-.9-.9.4-.9.9-.9zM14.5 9c-3.04 0-5.5 2.01-5.5 4.5S11.46 18 14.5 18c.68 0 1.33-.1 1.93-.3l2.14.75c.28.1.55-.18.45-.46l-.63-1.79c1.29-.95 2.11-2.32 2.11-3.85C20.5 11.01 17.54 9 14.5 9zm-2.1 2.7c.44 0 .8.36.8.8s-.36.8-.8.8-.8-.36-.8-.8.36-.8.8-.8zm4.2 0c.44 0 .8.36.8.8s-.36.8-.8.8-.8-.36-.8-.8.36-.8.8-.8z"/></svg>
+  </button>
+</div>
+
+<div class="phone-pop" id="phone-pop">
+  <div class="phone-card">
+    <a class="num" id="phone-link" href="#"></a>
+    <button class="copy-btn" id="copy-phone">复制</button>
+  </div>
+</div>
+
+<div class="qr-modal" id="qr-modal">
+  <div class="qr-box">
+    <button class="qr-close" id="qr-close" aria-label="关闭">
+      <svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+    </button>
+    <img id="qr-img" alt="微信二维码">
+    <div class="tip">微信扫码 · 加我好友</div>
+    <div class="wxid-row" id="wxid-row" style="display:none">
+      <span class="lbl">微信号<b id="wxid-text"></b></span>
+      <button class="wxid-copy" id="copy-wxid">复制</button>
+    </div>
+    <button class="wx-open" id="open-wechat" style="display:none">打开微信添加</button>
+    <div class="wx-tip" id="wx-tip" style="display:none">微信号已复制 · 微信右上角 + 号搜索添加</div>
+  </div>
+</div>
+
+<!-- 全屏查看器（点击图片自由放大） -->
+<div class="lb" id="lb">
+  <div class="lb-stage" id="lb-stage">
+    <img class="lb-img" id="lb-img" alt="" draggable="false">
+    <div class="lb-spin" id="lb-spin"></div>
+  </div>
+  <div class="lb-page" id="lb-page"></div>
+  <button class="lb-btn lb-close" id="lb-close" aria-label="关闭">
+    <svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+  </button>
+  <button class="lb-btn lb-arrow prev" id="lb-prev" aria-label="上一页">
+    <svg viewBox="0 0 24 24"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+  </button>
+  <button class="lb-btn lb-arrow next" id="lb-next" aria-label="下一页">
+    <svg viewBox="0 0 24 24"><path d="M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+  </button>
+  <div class="lb-wm" id="lb-wm" style="display:none"></div>
+</div>
+
+<script>
+(async () => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s || '').replace(/[&<>"']/g, (m) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+
+  // ---------- 读取配置 ----------
+  // 响应带 30 秒缓存（浏览器 + 边缘），回访秒开；改动最多延迟 30 秒生效
+  let cfg = null;
+  try {
+    const r = await fetch('/api/config');
+    const d = await r.json();
+    if (d.ok) cfg = d;
+  } catch (e) {}
+  const c = (cfg && cfg.config) || {};
+  if (c.title) document.title = c.title;
+
+  // ---------- 水印 ----------
+  if (c.wm_enabled && c.wm_text) {
+    const html = esc(c.wm_text).replace(/\{name\}/g, '<b>' + esc(c.wm_name) + '</b>');
+    $('wm-text').innerHTML = html;
+    $('wm').style.display = 'flex';
+    $('lb-wm').innerHTML = html;
+    $('lb-wm').style.display = 'block';
+    // 点击水印跳转感谢页（仅普通页面水印；全屏查看器内保持纯展示防误触）
+    $('wm').style.cursor = 'pointer';
+    $('wm').addEventListener('click', () => { location.href = '/thanks.html'; });
+  }
+
+  // ---------- 电话 / 二维码 ----------
+  const phoneOn = !!(c.phone_enabled && c.phone);
+  const qrOn = !!(c.qr_enabled && cfg && cfg.qr_version > 0);
+  if (phoneOn || qrOn) $('dock').style.display = 'flex';
+  if (!phoneOn) $('cbtn-phone').style.display = 'none';
+  if (!qrOn) $('cbtn-wechat').style.display = 'none';
+
+  if (phoneOn) {
+    const raw = c.phone;
+    const display = raw.length === 11 ? raw.replace(/(\d{3})(\d{4})(\d{4})/, '$1 $2 $3') : raw;
+    const link = $('phone-link');
+    link.textContent = display;
+    link.href = 'tel:' + raw;
+    $('copy-phone').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const btn = e.currentTarget;
+      try {
+        await navigator.clipboard.writeText(raw);
+        btn.textContent = '已复制';
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = raw;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        btn.textContent = '已复制';
+      }
+      setTimeout(() => (btn.textContent = '复制'), 1600);
+    });
+  }
+
+  // ---------- 微信号：手机自动复制 + 一键打开微信 ----------
+  const wxid = (c.wx_id || '').trim();
+  const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  async function copyText(t) {
+    try {
+      await navigator.clipboard.writeText(t);
+      return true;
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = t;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch (e) {}
+      ta.remove();
+      return ok;
+    }
+  }
+  if (wxid) {
+    $('wxid-text').textContent = wxid;
+    $('wxid-row').style.display = 'flex';
+    if (isTouch) {
+      $('open-wechat').style.display = 'block';
+      $('wx-tip').style.display = 'block';
+    }
+    $('copy-wxid').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const ok = await copyText(wxid);
+      $('copy-wxid').textContent = ok ? '已复制' : '复制失败';
+      setTimeout(() => ($('copy-wxid').textContent = '复制'), 1600);
+    });
+    $('open-wechat').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      await copyText(wxid);
+      // 拉起微信 App（无法直达加好友页，落地后粘贴搜索）
+      location.href = 'weixin://';
+    });
+  }
+
+  const qrOpen = () => {
+    $('qr-modal').classList.add('open');
+  };
+  const qrClose = () => {
+    $('qr-modal').classList.remove('open');
+  };
+
+  $('cbtn-phone').addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('phone-pop').classList.toggle('open');
+    qrClose();
+  });
+  $('cbtn-wechat').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    qrOpen();
+    $('phone-pop').classList.remove('open');
+    // 手机端：打开弹窗即自动复制，减少一步操作
+    if (wxid && isTouch) copyText(wxid);
+  });
+  $('qr-close').addEventListener('click', (e) => {
+    e.stopPropagation();
+    qrClose();
+  });
+  // 仅点击遮罩区域关闭（点卡片内部不关闭）
+  $('qr-modal').addEventListener('click', (e) => {
+    if (e.target === $('qr-modal')) qrClose();
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#phone-pop') && !e.target.closest('#cbtn-phone')) {
+      $('phone-pop').classList.remove('open');
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      qrClose();
+      $('phone-pop').classList.remove('open');
+    }
+  });
+
+  if (qrOn) $('qr-img').src = '/api/file/qrcode?v=' + cfg.qr_version;
+
+  // ---------- 访客统计 ----------
+  try {
+    let sid = null;
+    try { sid = localStorage.getItem('pf_sid'); } catch (e) {}
+    if (!sid) {
+      sid = 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      try { localStorage.setItem('pf_sid', sid); } catch (e) {}
+    }
+    navigator.sendBeacon('/api/track', JSON.stringify({ sid, ref: document.referrer || '', path: location.pathname }));
+  } catch (e) {}
+
+  const hideLoading = () => {
+    $('loading').classList.add('hide');
+    setTimeout(() => { const l = $('loading'); if (l) l.remove(); }, 400);
+  };
+
+  // ---------- 内容渲染：图片模式（快） ----------
+  function renderImageMode(mf) {
+    const list =
+      Array.isArray(c.pages) && c.pages.length
+        ? c.pages.filter((n) => n >= 1 && n <= mf.count)
+        : Array.from({ length: mf.count }, (_, i) => i + 1);
+    lbList = list;
+    lbVer = mf.version;
+    lbDims = mf.pages || [];
+
+    const container = $('pages');
+    list.forEach((n, i) => {
+      const d = mf.pages[n - 1] || { w: 3, h: 4 };
+      const el = document.createElement('div');
+      el.className = 'pg';
+      el.style.aspectRatio = d.w + ' / ' + d.h;
+      el.style.cursor = 'zoom-in';
+      el.addEventListener('click', () => openLightbox(i));
+      const img = document.createElement('img');
+      img.alt = '';
+      img.decoding = 'async';
+      img.draggable = false;
+      img.loading = i < 2 ? 'eager' : 'lazy';
+      if (i === 0) img.fetchPriority = 'high';
+      img.onerror = () => {
+        if (img.dataset.r) return;
+        img.dataset.r = '1';
+        setTimeout(() => { img.src = img.src; }, 1200);
+      };
+      img.src = '/api/file/page/v' + mf.version + '/' + n + '.jpg';
+      el.appendChild(img);
+      container.appendChild(el);
+    });
+    hideLoading();
+  }
+
+  // ---------- 全屏查看器：点击后自由放大 ----------
+  let lbList = [];
+  let lbVer = 1;
+  let lbDims = [];
+  const L = {
+    idx: 0, s: 1, fit: 1, max: 2, tx: 0, ty: 0, fitTx: 0, fitTy: 0,
+    iw: 3, ih: 4, ptrs: new Map(), pan: null, pinch: null, tap: null,
+    raf: 0, open: false, type: '', closedAt: 0,
+  };
+  const lbEl = $('lb'), lbStage = $('lb-stage'), lbImg = $('lb-img'), lbSpin = $('lb-spin');
+
+  const lbUrl = (i) => '/api/file/page/v' + lbVer + '/' + lbList[i] + '.jpg';
+
+  function lbApply() {
+    if (L.raf) return;
+    L.raf = requestAnimationFrame(() => {
+      L.raf = 0;
+      lbImg.style.transform = 'translate(' + L.tx + 'px,' + L.ty + 'px) scale(' + L.s + ')';
+    });
+  }
+  function lbClamp() {
+    const vw = innerWidth, vh = innerHeight;
+    const w = L.iw * L.s, h = L.ih * L.s;
+    // 某方向未超界：保持该方向居中；超界：边缘贴住视口即停（不露黑边）
+    L.tx = w <= vw ? (vw - w) / 2 : Math.min(0, Math.max(vw - w, L.tx));
+    L.ty = h <= vh ? (vh - h) / 2 : Math.min(0, Math.max(vh - h, L.ty));
+  }
+  function lbFit() {
+    const vw = innerWidth, vh = innerHeight;
+    L.fit = Math.min(vw / L.iw, vh / L.ih);
+    L.max = Math.max(L.fit * 6, 1.5);
+    L.s = L.fit;
+    L.fitTx = L.tx = (vw - L.iw * L.s) / 2;
+    L.fitTy = L.ty = (vh - L.ih * L.s) / 2;
+    lbApply();
+  }
+  function lbZoomAt(cx, cy, ns) {
+    ns = Math.min(L.max, Math.max(L.fit, ns));
+    const k = ns / L.s;
+    L.tx = cx - (cx - L.tx) * k;
+    L.ty = cy - (cy - L.ty) * k;
+    L.s = ns;
+    lbClamp();
+    lbApply();
+  }
+  function lbShow(i) {
+    L.idx = i;
+    const n = lbList[i];
+    const d = lbDims[n - 1] || { w: 3, h: 4 };
+    L.iw = d.w; L.ih = d.h;
+    lbImg.classList.remove('show');
+    lbSpin.style.display = 'block';
+    lbImg.onload = () => { lbSpin.style.display = 'none'; lbImg.classList.add('show'); };
+    lbImg.onerror = () => { lbSpin.style.display = 'none'; };
+    lbImg.src = lbUrl(i);
+    $('lb-page').textContent = i + 1 + ' / ' + lbList.length;
+    $('lb-prev').style.display = i > 0 ? 'flex' : 'none';
+    $('lb-next').style.display = i < lbList.length - 1 ? 'flex' : 'none';
+    lbFit();
+    [i - 1, i + 1].forEach((j) => {
+      if (j >= 0 && j < lbList.length) { const im = new Image(); im.src = lbUrl(j); }
+    });
+  }
+  function openLightbox(i) {
+    if (!lbList.length) return;
+    // 防穿透：关闭后 400ms 内的合成 click 不再重开（修点击黑色区域时闪烁跳动）
+    if (Date.now() - L.closedAt < 400) return;
+    L.open = true;
+    lbEl.classList.add('open');
+    lbShow(i);
+  }
+  function closeLightbox() {
+    L.open = false;
+    L.closedAt = Date.now();
+    L.ptrs.clear();
+    L.pan = null;
+    L.pinch = null;
+    lbEl.classList.remove('open');
+  }
+
+  // 手势：单指拖动 / 双指捏合 / 点按 / 滑动翻页（Pointer Events，触屏鼠标通用）
+  lbStage.addEventListener('pointerdown', (e) => {
+    L.type = e.pointerType || '';
+    try { lbStage.setPointerCapture(e.pointerId); } catch (err) {}
+    L.ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (L.ptrs.size === 1) {
+      L.pan = { x: e.clientX, y: e.clientY, tx: L.tx, ty: L.ty, t: Date.now(), moved: false };
+      L.pinch = null;
+      lbStage.classList.add('dragging');
+    } else if (L.ptrs.size === 2) {
+      const [a, b] = [...L.ptrs.values()];
+      L.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), s: L.s };
+      L.pan = null;
+    }
+  });
+  lbStage.addEventListener('pointermove', (e) => {
+    const p = L.ptrs.get(e.pointerId);
+    if (!p) return;
+    p.x = e.clientX; p.y = e.clientY;
+    if (L.pinch && L.ptrs.size >= 2) {
+      const [a, b] = [...L.ptrs.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+      if (d > 0 && L.pinch.d > 0) {
+        const ns = Math.min(L.max, Math.max(L.fit, L.pinch.s * (d / L.pinch.d)));
+        const k = ns / L.s;
+        L.tx = cx - (cx - L.tx) * k;
+        L.ty = cy - (cy - L.ty) * k;
+        L.s = ns;
+        lbClamp();
+        lbApply();
+      }
+    } else if (L.pan && L.ptrs.size === 1) {
+      const dx = e.clientX - L.pan.x, dy = e.clientY - L.pan.y;
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) L.pan.moved = true;
+      if (L.s > L.fit + 0.001) {
+        L.tx = L.pan.tx + dx;
+        L.ty = L.pan.ty + dy;
+        lbClamp();
+        lbApply();
+      } else {
+        // 未放大时：横向轻拖作为翻页预览
+        const drag = Math.max(-90, Math.min(90, dx));
+        L.tx = L.fitTx + drag * 0.6;
+        L.ty = L.fitTy;
+        lbApply();
+      }
+    }
+  });
+  function lbEnd(e) {
+    if (!L.ptrs.has(e.pointerId)) return;
+    L.ptrs.delete(e.pointerId);
+    if (L.ptrs.size === 0) {
+      lbStage.classList.remove('dragging');
+      if (L.pan) {
+        const dt = Date.now() - L.pan.t;
+        const dx = e.clientX - L.pan.x;
+        const dist = Math.hypot(dx, e.clientY - L.pan.y);
+        if (!L.pan.moved && dist < 8 && dt < 350) {
+          const now = Date.now();
+          if (L.tap && now - L.tap.t < 320 && Math.hypot(e.clientX - L.tap.x, e.clientY - L.tap.y) < 48) {
+            // 双击：放大 / 复原
+            L.tap = null;
+            if (L.s > L.fit + 0.01) lbFit();
+            else lbZoomAt(e.clientX, e.clientY, L.fit * 3);
+          } else {
+            L.tap = { x: e.clientX, y: e.clientY, t: now };
+            // 单击图片外的黑色区域关闭
+            const left = L.tx, top = L.ty;
+            const w = L.iw * L.s, h = L.ih * L.s;
+            if (e.clientX < left || e.clientX > left + w || e.clientY < top || e.clientY > top + h) {
+              closeLightbox();
+            }
+          }
+        } else if (L.s <= L.fit + 0.001) {
+          // 未放大时快速横滑翻页
+          if (dx < -55 && L.idx < lbList.length - 1) lbShow(L.idx + 1);
+          else if (dx > 55 && L.idx > 0) lbShow(L.idx - 1);
+          else lbFit();
+        }
+        L.pan = null;
+      }
+      L.pinch = null;
+    } else if (L.ptrs.size === 1) {
+      // 一指抬起：从捏合切回平移
+      const [a] = [...L.ptrs.values()];
+      L.pan = { x: a.x, y: a.y, tx: L.tx, ty: L.ty, t: Date.now(), moved: true };
+      L.pinch = null;
+    }
+  }
+  lbStage.addEventListener('pointerup', lbEnd);
+  lbStage.addEventListener('pointercancel', lbEnd);
+  lbStage.addEventListener('dblclick', (e) => {
+    if (L.type === 'touch') return;
+    if (L.s > L.fit + 0.01) lbFit();
+    else lbZoomAt(e.clientX, e.clientY, L.fit * 3);
+  });
+  lbEl.addEventListener('wheel', (e) => {
+    if (!L.open) return;
+    e.preventDefault();
+    e.stopPropagation();
+    lbZoomAt(e.clientX, e.clientY, L.s * (e.deltaY < 0 ? 1.18 : 1 / 1.18));
+  }, { passive: false });
+  // 点击 lightbox 顶部/底部空白区域（页码条、边缘）也可关闭
+  lbEl.addEventListener('click', (e) => {
+    if (!L.open) return;
+    if (e.target === lbEl || (e.target.classList && e.target.classList.contains('lb-page'))) {
+      closeLightbox();
+    }
+  });
+  $('lb-close').addEventListener('click', closeLightbox);
+  $('lb-prev').addEventListener('click', () => { if (L.idx > 0) lbShow(L.idx - 1); });
+  $('lb-next').addEventListener('click', () => { if (L.idx < lbList.length - 1) lbShow(L.idx + 1); });
+  document.addEventListener('keydown', (e) => {
+    if (!L.open) return;
+    // 阻止方向键/空格/翻页键滚动背后的页面
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ', 'PageUp', 'PageDown'].includes(e.key)) {
+      e.preventDefault();
+    }
+    if (e.key === 'Escape') closeLightbox();
+    else if (e.key === 'ArrowLeft' && L.idx > 0) lbShow(L.idx - 1);
+    else if (e.key === 'ArrowRight' && L.idx < lbList.length - 1) lbShow(L.idx + 1);
+  });
+  addEventListener('resize', () => { if (L.open) lbFit(); });
+
+  // ---------- 内容渲染：PDF 模式（兜底，仅当图片清单缺失时） ----------
+  async function renderPdfMode(pdfInfo) {
+    const loadScript = (src) =>
+      new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = res;
+        s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    if (!window.pdfjsLib) {
+      await loadScript('vendor/pdf.min.js');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+    }
+
+    const url = '/api/file/pdf/v' + pdfInfo.version + '/' + pdfInfo.size + '.pdf';
+    const doc = await pdfjsLib.getDocument({
+      url,
+      rangeChunkSize: 262144,
+      disableAutoFetch: true,
+      disableStream: true,
+    }).promise;
+
+    const show =
+      Array.isArray(c.pages) && c.pages.length
+        ? c.pages.filter((n) => n >= 1 && n <= doc.numPages)
+        : Array.from({ length: doc.numPages }, (_, i) => i + 1);
+
+    const container = $('pages');
+    const viewports = {};
+    const els = [];
+    for (const no of show) {
+      const page = await doc.getPage(no);
+      const vp = page.getViewport({ scale: 1 });
+      viewports[no] = vp;
+      const el = document.createElement('div');
+      el.className = 'pg';
+      el.style.aspectRatio = vp.width + ' / ' + vp.height;
+      el.dataset.no = no;
+      el.innerHTML = '<div class="hint"></div>';
+      container.appendChild(el);
+      els.push(el);
+    }
+    hideLoading();
+
+    const rendered = new Set();
+    async function renderPage(el) {
+      const no = +el.dataset.no;
+      if (rendered.has(no)) return;
+      rendered.add(no);
+      try {
+        const page = await doc.getPage(no);
+        const vp1 = viewports[no];
+        const w = el.clientWidth || 800;
+        let scale = Math.min((w * 2) / vp1.width, 3);
+        const cap = Math.sqrt(12e6 / (vp1.width * vp1.height));
+        if (scale > cap) scale = cap;
+        if (scale < 0.5) scale = 0.5;
+        const vp = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.floor(vp.width);
+        canvas.height = Math.floor(vp.height);
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        el.innerHTML = '';
+        el.appendChild(canvas);
+        io.unobserve(el);
+      } catch (e) {
+        rendered.delete(no);
+      }
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const en of entries) {
+          if (en.isIntersecting) renderPage(en.target);
+        }
+      },
+      { rootMargin: '1000px 0px' }
+    );
+    els.forEach((el) => io.observe(el));
+  }
+
+  // ---------- 选择渲染模式 ----------
+  const mf = cfg && cfg.manifest;
+  if (mf && mf.count > 0) {
+    renderImageMode(mf);
+  } else if (cfg && cfg.pdf) {
+    try {
+      await renderPdfMode(cfg.pdf);
+    } catch (e) {
+      $('loading-text').textContent = '加载失败，请刷新重试';
+    }
+  } else {
+    $('loading-text').textContent = '内容尚未上传';
+  }
+
+  // ---------- 防下载 / 防缩放 ----------
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.addEventListener('dragstart', (e) => e.preventDefault());
+  document.addEventListener('selectstart', (e) => {
+    if (e.target.closest && e.target.closest('#copy-phone')) return;
+    e.preventDefault();
+  });
+  document.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    if (
+      (e.ctrlKey || e.metaKey) && ['s', 'u', 'p'].includes(k) ||
+      k === 'f12' ||
+      (e.ctrlKey && e.shiftKey && ['i', 'j', 'c'].includes(k))
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  });
+  document.addEventListener('wheel', (e) => {
+    if (e.ctrlKey || e.metaKey) e.preventDefault();
+  }, { passive: false });
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) e.preventDefault();
+    lastTouchEnd = now;
+  }, { passive: false });
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=')) e.preventDefault();
+  });
+})();
+</script>
+</body>
+</html>
