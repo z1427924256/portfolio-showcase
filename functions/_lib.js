@@ -89,3 +89,56 @@ export async function deleteFile(env, key) {
   if (!env.R2) return;
   try { await env.R2.delete(key); } catch (e) {}
 }
+
+// ---------- CDN 缓存清除（多作品集） ----------
+// /api/config 的边缘缓存 key 统一为 /__config/{slug}（与请求 query 解耦），
+// /api/portfolios?published=1 的 key 为完整 URL；变更时逐一清除
+export async function purgeConfigs(env, origin) {
+  try {
+    const cache = caches.default;
+    const urls = [new URL('/api/portfolios?published=1', origin)];
+    const seen = new Set(['default']);
+    urls.push(new URL('/__config/default', origin));
+    try {
+      const { results } = await env.DB.prepare('SELECT slug FROM portfolios').all();
+      for (const r of results || []) {
+        if (r.slug && !seen.has(r.slug)) {
+          seen.add(r.slug);
+          urls.push(new URL('/__config/' + encodeURIComponent(r.slug), origin));
+        }
+      }
+    } catch (e) {}
+    await Promise.all(urls.map((u) => cache.delete(u).catch(() => {})));
+  } catch (e) {}
+}
+
+// ---------- 作品集访问授权（密码保护） ----------
+// cookie 形如 pfa=slug:exp.sig，sig = HMAC(secret, slug + '|' + exp)
+export async function signAccess(secret, slug, exp) {
+  const key = await crypto.subtle.importKey(
+    'raw', enc.encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const mac = await crypto.subtle.sign('HMAC', key, enc.encode(slug + '|' + exp));
+  return `${slug}:${exp}.${hex(mac)}`;
+}
+
+export async function verifyAccess(request, env, slug) {
+  const cookie = request.headers.get('Cookie') || '';
+  const m = cookie.match(/(?:^|;\s*)pfa=([^;]+)/);
+  if (!m) return false;
+  const parts = decodeURIComponent(m[1]).split(':');
+  if (parts.length !== 2) return false;
+  const [cSlug, rest] = parts;
+  if (cSlug !== slug) return false;
+  const dot = rest.split('.');
+  if (dot.length !== 2) return false;
+  const exp = +dot[0], sig = dot[1];
+  if (!exp || Date.now() > exp) return false;
+  const secret = await getSecret(env);
+  if (!secret) return false;
+  const expected = (await signAccess(secret, slug, exp)).split('.')[1];
+  if (!expected) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ sig.charCodeAt(i);
+  return diff === 0;
+}

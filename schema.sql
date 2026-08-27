@@ -22,12 +22,3 @@ CREATE TABLE IF NOT EXISTS login_attempts (
   fails INTEGER DEFAULT 0,
   last_ts INTEGER DEFAULT 0
 );
-CREATE TABLE IF NOT EXISTS requests (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  email TEXT NOT NULL,
-  ts INTEGER NOT NULL,
-  ip TEXT,
-  ua TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_requests_ts ON requests (ts);
-CREATE INDEX IF NOT EXISTS idx_requests_email ON requests (email);

@@ -247,41 +247,6 @@
   .declare p { font-size: 13.5px; line-height: 1.8; color: #555a66; }
   .declare p b { color: #1c1c1e; }
 
-  /* ---------- 申请表单 ---------- */
-  .apply { padding: 24px 22px 22px; }
-  .apply h3 { font-size: 20px; font-weight: 800; letter-spacing: -.01em; }
-  .apply .desc { margin-top: 8px; font-size: 14px; line-height: 1.7; color: #6d7280; }
-  .field { margin-top: 18px; display: flex; gap: 10px; }
-  .field input {
-    flex: 1; min-width: 0;
-    height: 48px; padding: 0 17px;
-    border: .5px solid rgba(60, 72, 100, 0.14);
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.9);
-    font-size: 15px; font-family: inherit; color: #1c1c1e;
-    outline: none;
-    transition: border-color .15s, box-shadow .15s;
-    -webkit-user-select: text; user-select: text;
-  }
-  .field input::placeholder { color: #b3b8c4; }
-  .field input:focus { border-color: #007aff; box-shadow: 0 0 0 3.5px rgba(0, 122, 255, 0.14); }
-  .field button {
-    flex: none; height: 48px; padding: 0 26px;
-    border: none; border-radius: 12px;
-    background: #007aff; color: #fff;
-    font-size: 15px; font-weight: 600; font-family: inherit;
-    cursor: pointer;
-    box-shadow: 0 6px 16px rgba(0, 122, 255, 0.28);
-    transition: background .15s, transform .1s, opacity .15s;
-    -webkit-tap-highlight-color: transparent;
-  }
-  .field button:hover { background: #0a84ff; }
-  .field button:active { transform: scale(.97); }
-  .field button:disabled { opacity: .55; }
-  .msg { margin-top: 13px; font-size: 13.5px; line-height: 1.6; min-height: 18px; }
-  .msg.ok { color: #30a14e; }
-  .msg.err { color: #e0356b; }
-
   /* ---------- 页脚 ---------- */
   .foot {
     margin-top: 44px; text-align: center;
@@ -295,12 +260,9 @@
     .nav-links a:not(.login) { display: none; }
     .grid { grid-template-columns: 1fr; }
     .advs { grid-template-columns: 1fr; }
-    .field { flex-direction: column; }
-    .field button { width: 100%; }
     .row { padding: 12px 16px; }
     .row + .row::before { left: 62px; }
     .declare { padding: 16px; }
-    .apply { padding: 20px 16px 18px; }
     .admin-hero { flex-direction: column; align-items: stretch; }
     .admin-hero .btn { width: 100%; }
   }
@@ -441,7 +403,6 @@
         <span>水印与联系方式</span>
         <span>页面排序隐藏</span>
         <span>访客统计</span>
-        <span>使用申请</span>
       </div>
       <div class="admin-lock">
         <svg viewBox="0 0 24 24" fill="none" stroke="#98a0b0" stroke-width="2.2" stroke-linecap="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
@@ -485,23 +446,6 @@
     </div>
   </div>
 
-  <!-- 申请使用 -->
-  <div class="sec-head">
-    <div class="num">CONTACT</div>
-    <h2>获取同款</h2>
-  </div>
-  <div class="card">
-    <div class="apply">
-      <h3>想拥有一套同款作品集？</h3>
-      <p class="desc">留下你的邮箱，我会尽快与你联系，分享这套系统的搭建方式。</p>
-      <form class="field" id="req-form">
-        <input type="email" id="req-email" placeholder="you@example.com" autocomplete="email" maxlength="100" required>
-        <button type="submit" id="req-btn">提交</button>
-      </form>
-      <div class="msg" id="req-msg"></div>
-    </div>
-  </div>
-
   <footer class="foot">
     <div class="links">
       <a href="/">返回作品集</a>
@@ -511,56 +455,5 @@
   </footer>
 </div>
 
-<script>
-(function () {
-  var form = document.getElementById('req-form');
-  var input = document.getElementById('req-email');
-  var btn = document.getElementById('req-btn');
-  var msg = document.getElementById('req-msg');
-  var sending = false;
-
-  form.addEventListener('submit', function (e) {
-    e.preventDefault();
-    if (sending) return;
-    var email = (input.value || '').trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-      msg.className = 'msg err';
-      msg.textContent = '请输入正确的邮箱地址';
-      input.focus();
-      return;
-    }
-    sending = true;
-    btn.disabled = true;
-    btn.textContent = '提交中…';
-    msg.className = 'msg';
-    msg.textContent = '';
-    fetch('/api/request', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email })
-    })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (d.ok) {
-          msg.className = 'msg ok';
-          msg.textContent = '已收到，我会尽快与你联系 ✓';
-          form.reset();
-        } else {
-          msg.className = 'msg err';
-          msg.textContent = d.error || '提交失败，请稍后再试';
-        }
-      })
-      .catch(function () {
-        msg.className = 'msg err';
-        msg.textContent = '网络异常，请稍后再试';
-      })
-      .then(function () {
-        sending = false;
-        btn.disabled = false;
-        btn.textContent = '提交';
-      });
-  });
-})();
-</script>
 </body>
 </html>

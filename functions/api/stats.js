@@ -19,7 +19,7 @@ export async function onRequestGet(context) {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const [total, today, week, byDay, byDevice, byRegion, recent] = await Promise.all([
+  const [total, today, week, byDay, byDevice, byRegion, byPortfolio, recent] = await Promise.all([
     env.DB.prepare('SELECT COUNT(*) c, COUNT(DISTINCT session) u FROM visits').first(),
     env.DB.prepare('SELECT COUNT(*) c, COUNT(DISTINCT session) u FROM visits WHERE ts >= ?')
       .bind(todayStart.getTime()).first(),
@@ -33,8 +33,13 @@ export async function onRequestGet(context) {
     env.DB.prepare(
       "SELECT CASE WHEN region_cn IS NULL OR region_cn='' THEN '未知' ELSE region_cn END k, COUNT(*) c FROM visits GROUP BY k ORDER BY c DESC LIMIT 10"
     ).all(),
+    // 作品集访问排行（slug 关联标题；兼容未记录 slug 的旧行）
     env.DB.prepare(
-      'SELECT ts, ip, region_cn, device FROM visits ORDER BY id DESC LIMIT 100'
+      `SELECT COALESCE(NULLIF(v.slug, ''), '(未记录)') k, COUNT(*) c
+       FROM visits v GROUP BY v.slug ORDER BY c DESC LIMIT 10`
+    ).all(),
+    env.DB.prepare(
+      'SELECT ts, ip, region_cn, device, slug FROM visits ORDER BY id DESC LIMIT 100'
     ).all(),
   ]);
 
@@ -45,6 +50,7 @@ export async function onRequestGet(context) {
     byDay: byDay.results || [],
     byDevice: byDevice.results || [],
     byRegion: byRegion.results || [],
+    byPortfolio: byPortfolio.results || [],
     recent: recent.results || [],
   };
 

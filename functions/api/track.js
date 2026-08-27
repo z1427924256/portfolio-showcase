@@ -80,6 +80,7 @@ function regionCn(cf) {
 }
 
 // POST /api/track —— 访客记录（公开，sendBeacon 上报）
+// body: { sid, ref, path?, slug? } —— slug 为作品集标识，用于按作品集统计与访问计数
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -91,9 +92,13 @@ export async function onRequestPost(context) {
   const sid = String(body.sid || '').slice(0, 48);
   if (!sid) return json({ ok: true });
 
-  // 频率限制：同一 IP 60 秒内只记录一次
+  // 作品集标识（限制长度与字符集）
+  let slug = String(body.slug || '').slice(0, 40);
+  if (slug && !/^[\w-]{1,40}$/.test(slug) && slug !== 'default') slug = '';
+
+  // 频率限制：同一 IP 同一作品集 60 秒内只记录一次
   const ip = (request.headers.get('CF-Connecting-IP') || '').slice(0, 45);
-  const recent = await env.DB.prepare('SELECT ts FROM visits WHERE ip=? ORDER BY ts DESC LIMIT 1').bind(ip).first();
+  const recent = await env.DB.prepare('SELECT ts FROM visits WHERE ip=? AND slug=? ORDER BY ts DESC LIMIT 1').bind(ip, slug).first();
   if (recent && Date.now() - recent.ts < 60 * 1000) return json({ ok: true });
 
   const ref = String(body.ref || '').slice(0, 250);
@@ -104,10 +109,15 @@ export async function onRequestPost(context) {
 
   try {
     await env.DB.prepare(
-      'INSERT INTO visits (ts, session, device, country, city, referrer, ua, ip, region_cn) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO visits (ts, session, device, country, city, referrer, ua, ip, region_cn, slug) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     )
-      .bind(Date.now(), sid, device, cf.country || '未知', cf.city || '', ref, ua, ip, region)
+      .bind(Date.now(), sid, device, cf.country || '未知', cf.city || '', ref, ua, ip, region, slug)
       .run();
+
+    // 作品集访问计数（访问限制依据）
+    if (slug) {
+      await env.DB.prepare('UPDATE portfolios SET views=views+1 WHERE slug=?').bind(slug).run();
+    }
   } catch {}
 
   // 偶尔清理 90 天前的旧数据

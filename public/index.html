@@ -322,6 +322,114 @@
   }
   .lb-wm b { font-weight: 600; }
 
+  /* 斜纹平铺全屏水印 */
+  .wm-tile {
+    position: fixed; inset: -30%;
+    z-index: 3500;
+    pointer-events: none;
+    display: none;
+    background-repeat: repeat;
+  }
+
+  /* 顶部导航（多作品集时显示） */
+  .top-nav {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 1200;
+    display: none;
+    text-decoration: none;
+    background: rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(16px) saturate(1.8);
+    -webkit-backdrop-filter: blur(16px) saturate(1.8);
+    color: #fff;
+    font-size: 12px;
+    line-height: 1;
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    align-items: center;
+    gap: 6px;
+  }
+  .top-nav svg { width: 13px; height: 13px; fill: #fff; }
+  .top-nav:active { background: rgba(0, 0, 0, 0.5); }
+
+  /* 密码门（受保护作品集） */
+  .gate {
+    position: fixed; inset: 0; z-index: 4000;
+    background: #f5f5f7;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .gate.open { display: flex; }
+  .gate-box {
+    background: #fff;
+    border-radius: 18px;
+    padding: 34px 30px 30px;
+    width: min(340px, 92vw);
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+  .gate-box .lock-ico {
+    width: 46px; height: 46px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: #f5f5f7;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .gate-box .lock-ico svg { width: 22px; height: 22px; fill: #86868b; }
+  .gate-box h2 {
+    font-size: 18px; font-weight: 600; color: #1d1d1f;
+    margin-bottom: 6px; word-break: break-all;
+  }
+  .gate-box .sub {
+    font-size: 13px; color: #86868b; margin-bottom: 22px; line-height: 1.5;
+  }
+  .gate-box input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #d2d2d7;
+    border-radius: 10px;
+    font-size: 16px;
+    padding: 12px 14px;
+    outline: none;
+    text-align: center;
+    letter-spacing: 2px;
+    -webkit-appearance: none;
+  }
+  .gate-box input:focus { border-color: #0071e3; }
+  .gate-box button {
+    width: 100%;
+    margin-top: 14px;
+    border: none;
+    background: #1d1d1f;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 0;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .gate-box button:disabled { opacity: .5; }
+  .gate-box button:active { background: #424245; }
+  .gate-err {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #e02020;
+    min-height: 18px;
+  }
+  /* 链接失效提示 */
+  .blocked-box {
+    text-align: center;
+    padding: 100px 24px 0;
+  }
+  .blocked-box .ico { font-size: 44px; margin-bottom: 16px; }
+  .blocked-box h2 { font-size: 19px; color: #1d1d1f; font-weight: 600; margin-bottom: 8px; }
+  .blocked-box p { font-size: 14px; color: #86868b; line-height: 1.6; }
+
   @media (max-width: 768px) {
     .contact-dock { bottom: 80px; }
     .phone-pop { bottom: 126px; }
@@ -330,6 +438,36 @@
 </head>
 <body>
 <div id="loading"><div class="spin"></div><div id="loading-text">正在加载…</div></div>
+
+<!-- 斜纹平铺全屏水印 -->
+<div class="wm-tile" id="wm-tile"></div>
+
+<!-- 顶部导航（多作品集时显示） -->
+<a class="top-nav" id="top-nav" href="/guide">
+  <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg>
+  <span>作品集</span>
+</a>
+
+<!-- 密码门 -->
+<div class="gate" id="gate">
+  <div class="gate-box">
+    <div class="lock-ico">
+      <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 8V7a3 3 0 1 1 6 0v3H9z"/></svg>
+    </div>
+    <h2 id="gate-title">该内容已加密</h2>
+    <div class="sub" id="gate-sub">请输入访问密码</div>
+    <input type="password" id="gate-pass" placeholder="访问密码" autocomplete="off" maxlength="64">
+    <button id="gate-btn">查 看</button>
+    <div class="gate-err" id="gate-err"></div>
+  </div>
+</div>
+
+<!-- 链接失效提示（访问次数用尽） -->
+<div class="blocked-box" id="blocked" style="display:none">
+  <div class="ico">🔒</div>
+  <h2>链接已失效</h2>
+  <p>该作品集的访问次数已用完<br>请联系分享者重新获取</p>
+</div>
 
 <div class="pages" id="pages"></div>
 
@@ -394,27 +532,97 @@
   const esc = (s) => String(s || '').replace(/[&<>"']/g, (m) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 
+  // ---------- 解析当前作品集 slug ----------
+  // /xxx → slug=xxx；/ 或未知路径 → default（兼容旧版）
+  const RESERVED_PATHS = new Set(['', 'guide', 'thanks', 'admin', 'api', 'vendor', 'assets', 'index.html']);
+  const pathSlug = decodeURIComponent((location.pathname.split('/')[1] || '').trim());
+  const slug = RESERVED_PATHS.has(pathSlug) || !/^[\w-]{1,40}$/.test(pathSlug) ? 'default' : pathSlug;
+
   // ---------- 读取配置 ----------
   // 响应带 30 秒缓存（浏览器 + 边缘），回访秒开；改动最多延迟 30 秒生效
   let cfg = null;
   try {
-    const r = await fetch('/api/config');
+    const r = await fetch('/api/config?slug=' + encodeURIComponent(slug), { cache: 'no-cache' });
     const d = await r.json();
     if (d.ok) cfg = d;
   } catch (e) {}
   const c = (cfg && cfg.config) || {};
+  const pf = (cfg && cfg.portfolio) || null;
   if (c.title) document.title = c.title;
 
+  // ---------- 链接失效（访问次数用尽） ----------
+  if (pf && pf.blocked) {
+    $('loading').remove();
+    $('blocked').style.display = 'block';
+    return;
+  }
+
+  // ---------- 密码门（受保护作品集） ----------
+  if (pf && pf.protected && !pf.authorized) {
+    $('loading').remove();
+    $('gate-title').textContent = c.title || '该内容已加密';
+    $('gate').classList.add('open');
+    const passInput = $('gate-pass');
+    const submit = async () => {
+      const pw = passInput.value;
+      if (!pw) { $('gate-err').textContent = '请输入密码'; return; }
+      const btn = $('gate-btn');
+      btn.disabled = true; btn.textContent = '验证中…';
+      $('gate-err').textContent = '';
+      try {
+        const r = await fetch('/api/access', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, password: pw }),
+        });
+        const d = await r.json();
+        if (d.ok) {
+          location.reload();
+        } else {
+          $('gate-err').textContent = d.error || '密码不正确';
+          btn.disabled = false; btn.textContent = '查 看';
+        }
+      } catch (e) {
+        $('gate-err').textContent = '网络错误，请重试';
+        btn.disabled = false; btn.textContent = '查 看';
+      }
+    };
+    $('gate-btn').addEventListener('click', submit);
+    passInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+    setTimeout(() => passInput.focus(), 100);
+    return;
+  }
+
+  // ---------- 顶部导航（多作品集时显示） ----------
+  if (cfg && Array.isArray(cfg.portfolios) && cfg.portfolios.length > 1) {
+    $('top-nav').style.display = 'inline-flex';
+  }
+
   // ---------- 水印 ----------
+  // 两种样式：capsule（磨砂胶囊，底部居中）/ tile（斜纹平铺全屏）
   if (c.wm_enabled && c.wm_text) {
-    const html = esc(c.wm_text).replace(/\{name\}/g, '<b>' + esc(c.wm_name) + '</b>');
-    $('wm-text').innerHTML = html;
-    $('wm').style.display = 'flex';
-    $('lb-wm').innerHTML = html;
-    $('lb-wm').style.display = 'block';
-    // 点击水印跳转感谢页（仅普通页面水印；全屏查看器内保持纯展示防误触）
-    $('wm').style.cursor = 'pointer';
-    $('wm').addEventListener('click', () => { location.href = '/thanks.html'; });
+    if (c.wm_style === 'tile') {
+      // 斜纹平铺：SVG 文本平铺为背景，覆盖全屏（含全屏查看器）
+      const text = String(c.wm_text).replace(/\{name\}/g, c.wm_name || '');
+      const svg =
+        "<svg xmlns='http://www.w3.org/2000/svg' width='280' height='200'>" +
+        "<text x='140' y='110' font-size='14' fill='rgba(255,255,255,0.14)' font-family='-apple-system,PingFang SC,Microsoft YaHei,sans-serif' text-anchor='middle' transform='rotate(-22 140 100)'>" +
+        text.replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) +
+        '</text></svg>';
+      const tile = $('wm-tile');
+      tile.style.backgroundImage = "url(\"data:image/svg+xml," + encodeURIComponent(svg) + "\")";
+      tile.style.display = 'block';
+    } else {
+      // 胶囊水印（默认）
+      const html = esc(c.wm_text).replace(/\{name\}/g, '<b>' + esc(c.wm_name) + '</b>');
+      $('wm-text').innerHTML = html;
+      $('wm').style.display = 'flex';
+      $('lb-wm').innerHTML = html;
+      $('lb-wm').style.display = 'block';
+      // 点击水印跳转感谢页（仅普通页面水印；全屏查看器内保持纯展示防误触）
+      $('wm').style.cursor = 'pointer';
+      $('wm').addEventListener('click', () => { location.href = '/thanks.html'; });
+    }
   }
 
   // ---------- 电话 / 二维码 ----------
@@ -548,7 +756,7 @@
       sid = 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
       try { localStorage.setItem('pf_sid', sid); } catch (e) {}
     }
-    navigator.sendBeacon('/api/track', JSON.stringify({ sid, ref: document.referrer || '', path: location.pathname }));
+    navigator.sendBeacon('/api/track', JSON.stringify({ sid, ref: document.referrer || '', path: location.pathname, slug }));
   } catch (e) {}
 
   const hideLoading = () => {
@@ -586,13 +794,13 @@
         img.dataset.r = '1';
         setTimeout(() => { img.src = img.src; }, 1200);
       };
-      img.src = '/api/file/page/v' + mf.version + '/' + n + '.webp';
+      img.src = '/api/file/' + encodeURIComponent(slug) + '/page/v' + mf.version + '/' + n + '.webp';
       // 预加载下一页（低优先级，不阻塞当前页）
       if (i === 0 && list[1]) {
         const preload = new Image();
         preload.fetchPriority = 'low';
         preload.loading = 'lazy';
-        preload.src = '/api/file/page/v' + mf.version + '/' + list[1] + '.webp';
+        preload.src = '/api/file/' + encodeURIComponent(slug) + '/page/v' + mf.version + '/' + list[1] + '.webp';
       }
       el.appendChild(img);
       container.appendChild(el);
@@ -611,7 +819,7 @@
   };
   const lbEl = $('lb'), lbStage = $('lb-stage'), lbImg = $('lb-img'), lbSpin = $('lb-spin');
 
-  const lbUrl = (i) => '/api/file/page/v' + lbVer + '/' + lbList[i] + '.webp';
+  const lbUrl = (i) => '/api/file/' + encodeURIComponent(slug) + '/page/v' + lbVer + '/' + lbList[i] + '.webp';
 
   function lbApply() {
     if (L.raf) return;

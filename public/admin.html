@@ -6,213 +6,526 @@
 <meta name="robots" content="noindex, nofollow">
 <title>作品集管理后台</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* ============ 设计系统（参考 invoice-app 设计语言） ============ */
+  :root {
+    --primary: #07C160;
+    --primary-soft: #E5F8EE;
+    --primary-border: #BFE9CF;
+    --primary-deep: #06A050;
+    --primary-deep-2: #048040;
+    --ink: #1F2128;
+    --ink-2: #4A4D55;
+    --muted: #8A8E99;
+    --line: #E6E8EE;
+    --line-2: #F1F3F7;
+    --bg: #F4F6FA;
+    --card: #FFFFFF;
+    --success: #07C160;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --shadow-sm: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+    --shadow-md: 0 4px 12px rgba(7,193,96,.10), 0 8px 24px rgba(16,24,40,.04);
+    --shadow-lg: 0 12px 32px rgba(7,193,96,.16), 0 24px 64px rgba(16,24,40,.10);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-    background: #f2f3f7;
-    color: #1d1d1f;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
     min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
   }
   button { font-family: inherit; cursor: pointer; }
-  input { font-family: inherit; }
+  input, select { font-family: inherit; }
+  ::selection { background: rgba(7,193,96,.22); }
 
-  /* 登录页 */
+  /* ============ 登录页 ============ */
   .login-wrap {
     min-height: 100vh;
     display: flex; align-items: center; justify-content: center;
     padding: 20px;
+    background:
+      radial-gradient(600px 300px at 20% 10%, rgba(7,193,96,.10), transparent),
+      radial-gradient(600px 300px at 85% 90%, rgba(7,193,96,.07), transparent),
+      var(--bg);
   }
   .login-card {
-    background: #fff; border-radius: 16px; padding: 36px 32px;
-    width: 100%; max-width: 380px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 20px; padding: 38px 34px;
+    width: 100%; max-width: 390px;
+    box-shadow: var(--shadow-lg);
   }
-  .login-card h1 { font-size: 20px; margin-bottom: 6px; }
-  .login-card p.sub { font-size: 13px; color: #86868b; margin-bottom: 24px; }
+  .login-logo {
+    width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 18px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-deep) 100%);
+    color: #fff; display: grid; place-items: center;
+    box-shadow: var(--shadow-md);
+  }
+  .login-logo svg { width: 28px; height: 28px; }
+  .login-card h1 { font-size: 20px; margin-bottom: 4px; text-align: center; }
+  .login-card p.sub { font-size: 13px; color: var(--muted); margin-bottom: 26px; text-align: center; }
   .login-card input {
-    width: 100%; padding: 12px 14px; border: 1px solid #d9d9de;
-    border-radius: 8px; font-size: 15px; outline: none; margin-bottom: 14px;
+    width: 100%; padding: 12px 14px; border: 1px solid var(--line);
+    border-radius: var(--radius-sm); font-size: 15px; outline: none; margin-bottom: 14px;
+    background: var(--line-2); transition: border-color .16s, background .16s;
   }
-  .login-card input:focus { border-color: #4a7dff; }
+  .login-card input:focus { border-color: var(--primary); background: #fff; }
   .btn-main {
-    width: 100%; padding: 12px; background: #1d1d1f; color: #fff;
-    border: none; border-radius: 8px; font-size: 15px; margin-top: 4px;
+    width: 100%; padding: 13px; border: none; border-radius: var(--radius-sm);
+    font-size: 15px; font-weight: 600;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-deep) 100%);
+    color: #fff; margin-top: 4px;
+    box-shadow: var(--shadow-md);
+    transition: transform .12s, box-shadow .16s;
   }
-  .btn-main:hover { background: #3a3a3c; }
-  .btn-main:disabled { background: #b0b0b5; cursor: not-allowed; }
-  .err { color: #e02020; font-size: 13px; min-height: 18px; margin-top: 10px; }
+  .btn-main:hover { box-shadow: 0 6px 18px rgba(7,193,96,.35); }
+  .btn-main:active { transform: scale(.98); }
+  .btn-main:disabled { background: #C6CBD4; cursor: not-allowed; box-shadow: none; }
+  .err { color: var(--danger); font-size: 13px; min-height: 18px; margin-top: 10px; text-align: center; }
 
-  /* 后台框架 */
+  /* ============ 顶栏（绿色渐变） ============ */
   .topbar {
-    background: #fff; padding: 14px 20px;
-    display: flex; align-items: center; justify-content: space-between;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     position: sticky; top: 0; z-index: 100;
+    background: linear-gradient(135deg, #07C160 0%, #06AD56 60%, #048040 100%);
+    color: #fff;
+    padding: 12px 20px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 2px 12px rgba(7,193,96,.25);
   }
-  .topbar .t { font-size: 16px; font-weight: 600; }
-  .topbar .actions { display: flex; gap: 10px; }
+  .brand-logo {
+    width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+    background: rgba(255,255,255,.18);
+    color: #fff; display: grid; place-items: center;
+    border: 1px solid rgba(255,255,255,.35);
+  }
+  .brand-logo svg { width: 19px; height: 19px; }
+  .brand-name { font-size: 16px; font-weight: 600; line-height: 1.2; }
+  .brand-name small {
+    display: block; font-size: 10.5px; color: rgba(255,255,255,.85);
+    font-weight: 400; letter-spacing: .5px; margin-top: 1px;
+  }
+  .topbar .actions { margin-left: auto; display: flex; gap: 8px; }
   .topbar a.view {
-    color: #4a7dff; text-decoration: none; font-size: 13px;
-    padding: 7px 12px; border: 1px solid #d9d9de; border-radius: 8px; background: #fff;
+    color: #fff; text-decoration: none; font-size: 12.5px; font-weight: 600;
+    padding: 8px 14px; border-radius: 9px; background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.35);
+    display: inline-flex; align-items: center; gap: 5px;
   }
+  .topbar a.view:hover { background: rgba(255,255,255,.28); }
   .topbar button.logout {
-    border: none; background: none; color: #86868b; font-size: 13px; padding: 7px 4px;
+    border: none; background: none; color: rgba(255,255,255,.9);
+    font-size: 12.5px; font-weight: 600; padding: 8px 6px;
   }
+  .topbar button.logout:hover { color: #fff; text-decoration: underline; }
+
+  /* ============ 下划线式标签 ============ */
   .tabs {
-    display: flex; gap: 6px; padding: 14px 20px 0; flex-wrap: wrap;
+    display: flex; gap: 2px; flex-wrap: nowrap; overflow-x: auto;
     max-width: 980px; margin: 0 auto; width: 100%;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+    scrollbar-width: none;
   }
+  .tabs::-webkit-scrollbar { display: none; }
   .tabs button {
-    border: none; background: none; padding: 9px 16px; font-size: 14px;
-    color: #86868b; border-radius: 8px;
+    border: none; background: none; padding: 11px 14px; font-size: 13.5px; font-weight: 600;
+    color: var(--muted); white-space: nowrap;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: color .16s, border-color .16s;
   }
-  .tabs button.on { background: #fff; color: #1d1d1f; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-  .main { max-width: 980px; margin: 14px auto 60px; padding: 0 20px; }
+  .tabs button svg { width: 15px; height: 15px; }
+  .tabs button:hover { color: var(--ink-2); }
+  .tabs button.on { color: var(--primary-deep); border-bottom-color: var(--primary); }
+  .main { max-width: 980px; margin: 18px auto 70px; padding: 0 20px; }
   .panel { display: none; }
-  .panel.on { display: block; }
+  .panel.on { display: block; animation: fadeUp .22s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
+  /* ============ 卡片 ============ */
   .card {
-    background: #fff; border-radius: 14px; padding: 22px 24px;
-    box-shadow: 0 1px 6px rgba(0,0,0,0.05); margin-bottom: 16px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 22px 24px;
+    margin-bottom: 14px;
   }
-  .card h2 { font-size: 15px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-  .card h2 .tag { font-size: 12px; color: #86868b; font-weight: normal; }
+  .card h2 {
+    font-size: 15px; margin-bottom: 18px;
+    display: flex; align-items: center; gap: 8px;
+    padding-bottom: 14px; border-bottom: 1px solid var(--line-2);
+  }
+  .card h2 svg { width: 17px; height: 17px; color: var(--primary); }
+  .card h2 .tag { font-size: 12px; color: var(--muted); font-weight: normal; margin-left: auto; }
 
-  .form-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
-  .form-row label { width: 110px; font-size: 14px; color: #55555c; flex-shrink: 0; }
-  .form-row input[type=text] {
-    flex: 1; min-width: 200px; padding: 9px 12px;
-    border: 1px solid #d9d9de; border-radius: 8px; font-size: 14px; outline: none;
+  /* ============ 表单 ============ */
+  .form-row { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; flex-wrap: wrap; }
+  .form-row label { width: 110px; font-size: 13.5px; color: var(--ink-2); flex-shrink: 0; font-weight: 500; }
+  .form-row input[type=text], .form-row input[type=password] {
+    flex: 1; min-width: 200px; padding: 10px 13px;
+    border: 1px solid var(--line); border-radius: 9px; font-size: 14px; outline: none;
+    background: var(--line-2); transition: border-color .16s, background .16s;
   }
-  .form-row input[type=text]:focus { border-color: #4a7dff; }
+  .form-row input:focus, .pw-input:focus { border-color: var(--primary); background: #fff; }
   .pw-input {
-    flex: 1; min-width: 200px; padding: 9px 12px;
-    border: 1px solid #d9d9de; border-radius: 8px; font-size: 14px; outline: none;
+    flex: 1; min-width: 200px; padding: 10px 13px;
+    border: 1px solid var(--line); border-radius: 9px; font-size: 14px; outline: none;
+    background: var(--line-2); transition: border-color .16s, background .16s;
   }
-  .pw-input:focus { border-color: #4a7dff; }
-  .form-row .tip { font-size: 12px; color: #a0a0a6; width: 100%; margin-left: 122px; margin-top: -8px; }
-  .switch { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+  .form-row .tip { font-size: 12px; color: var(--muted); width: 100%; margin-left: 122px; margin-top: -8px; }
+
+  .switch { position: relative; width: 44px; height: 25px; flex-shrink: 0; }
   .switch input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; margin: 0; cursor: pointer; }
-  .switch span {
-    position: absolute; inset: 0; background: #d9d9de; border-radius: 12px;
-    transition: .2s; pointer-events: none;
-  }
+  .switch span { position: absolute; inset: 0; background: #D5D9E0; border-radius: 13px; transition: .2s; pointer-events: none; }
   .switch span::after {
-    content: ''; position: absolute; width: 20px; height: 20px;
+    content: ''; position: absolute; width: 21px; height: 21px;
     left: 2px; top: 2px; background: #fff; border-radius: 50%;
     transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   }
-  .switch input:checked + span { background: #34c759; }
-  .switch input:checked + span::after { transform: translateX(18px); }
+  .switch input:checked + span { background: var(--primary); }
+  .switch input:checked + span::after { transform: translateX(19px); }
 
+  /* ============ 按钮 ============ */
   .btn-save {
-    padding: 10px 28px; background: #1d1d1f; color: #fff; border: none;
-    border-radius: 8px; font-size: 14px;
+    padding: 10px 26px; border: none; border-radius: 9px;
+    font-size: 14px; font-weight: 600;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-deep) 100%);
+    color: #fff; box-shadow: var(--shadow-md);
+    transition: transform .12s, box-shadow .16s;
   }
-  .btn-save:hover { background: #3a3a3c; }
-  .btn-save:disabled { background: #b0b0b5; cursor: not-allowed; }
+  .btn-save:hover { box-shadow: 0 6px 18px rgba(7,193,96,.35); }
+  .btn-save:active { transform: scale(.97); }
+  .btn-save:disabled { background: #C6CBD4; cursor: not-allowed; box-shadow: none; }
   .btn-danger {
-    padding: 9px 22px; background: #fff; color: #e02020; border: 1px solid #ffcdd2;
-    border-radius: 8px; font-size: 14px;
+    padding: 10px 22px; background: #fff; color: var(--danger);
+    border: 1px solid rgba(220,38,38,.3); border-radius: 9px; font-size: 14px; font-weight: 500;
   }
-  .btn-danger:hover { background: #e02020; color: #fff; border-color: #e02020; }
+  .btn-danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
   .btn-danger:disabled { opacity: .5; cursor: not-allowed; }
-  .ok-msg { color: #34c759; font-size: 13px; margin-left: 10px; }
+  .ok-msg { color: var(--primary-deep); font-size: 13px; margin-left: 10px; }
 
-  /* 统计 */
-  .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .stat-card { background: #fff; border-radius: 14px; padding: 18px; box-shadow: 0 1px 6px rgba(0,0,0,0.05); }
-  .stat-card .v { font-size: 26px; font-weight: 700; }
-  .stat-card .k { font-size: 12px; color: #86868b; margin-top: 4px; }
+  /* ============ 统计 ============ */
+  .stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow-sm);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .stat-card .ico {
+    width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0;
+    display: grid; place-items: center; font-size: 18px;
+  }
+  .stat-card .ico.g { background: var(--primary-soft); color: var(--primary-deep); }
+  .stat-card .ico.b { background: #E8F1FE; color: #1B6FC9; }
+  .stat-card .ico.o { background: #FEF3C7; color: #B45309; }
+  .stat-card .ico.p { background: #F1EAFE; color: #7C3AED; }
+  .stat-card .v { font-size: 23px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .stat-card .k { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
   .chart { display: flex; align-items: flex-end; gap: 5px; height: 140px; padding-top: 10px; }
   .chart .bar-w { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; height: 100%; justify-content: flex-end; }
-  .chart .bar { width: 100%; max-width: 30px; background: #4a7dff; border-radius: 4px 4px 0 0; min-height: 2px; }
-  .chart .lbl { font-size: 10px; color: #a0a0a6; }
-  .rank-list { display: flex; flex-direction: column; gap: 9px; }
+  .chart .bar {
+    width: 100%; max-width: 30px; min-height: 2px;
+    background: linear-gradient(180deg, #2BD474 0%, var(--primary) 100%);
+    border-radius: 4px 4px 0 0;
+  }
+  .chart .lbl { font-size: 10px; color: var(--muted); }
+  .rank-list { display: flex; flex-direction: column; gap: 10px; }
   .rank-item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
   .rank-item .name { width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-shrink: 0; }
-  .rank-item .track { flex: 1; height: 8px; background: #f2f3f7; border-radius: 4px; overflow: hidden; }
-  .rank-item .fill { height: 100%; background: #4a7dff; border-radius: 4px; }
-  .rank-item .num { width: 44px; text-align: right; color: #86868b; flex-shrink: 0; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 700px) { .grid-2 { grid-template-columns: 1fr; } .form-row .tip { margin-left: 0; } .form-row label { width: 100%; } }
+  .rank-item .track { flex: 1; height: 8px; background: var(--line-2); border-radius: 4px; overflow: hidden; }
+  .rank-item .fill { height: 100%; background: linear-gradient(90deg, var(--primary) 0%, #2BD474 100%); border-radius: 4px; }
+  .rank-item .num { width: 44px; text-align: right; color: var(--muted); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
-  /* 访客列表 */
+  /* ============ 访客列表 ============ */
   .visit-list { display: flex; flex-direction: column; }
   .visit-list .v-row {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 11px 4px; border-bottom: 1px solid #f5f5f7; font-size: 14px;
+    padding: 11px 4px; border-bottom: 1px solid var(--line-2); font-size: 14px;
   }
   .visit-list .v-row:last-child { border-bottom: none; }
-  .visit-list .v-who { display: flex; align-items: center; gap: 8px; min-width: 0; }
-  .visit-list .v-ip { color: #1d1d1f; font-variant-numeric: tabular-nums; }
-  .visit-list .v-region { color: #86868b; font-size: 13px; }
-  .visit-list .v-dev { font-size: 11px; color: #a0a0a6; background: #f2f3f7; padding: 1px 7px; border-radius: 4px; flex-shrink: 0; }
-  .visit-list .v-time { color: #86868b; font-size: 13px; flex-shrink: 0; margin-left: 12px; font-variant-numeric: tabular-nums; }
+  .visit-list .v-who { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
+  .visit-list .v-ip { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .visit-list .v-region { color: var(--muted); font-size: 13px; }
+  .visit-list .v-dev { font-size: 11px; color: var(--muted); background: var(--line-2); padding: 1px 7px; border-radius: 5px; flex-shrink: 0; }
+  .visit-list .v-pf { font-size: 11px; color: var(--primary-deep); background: var(--primary-soft); padding: 1px 7px; border-radius: 5px; flex-shrink: 0; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .visit-list .v-time { color: var(--muted); font-size: 13px; flex-shrink: 0; margin-left: 12px; font-variant-numeric: tabular-nums; }
 
-  /* 使用申请列表 */
-  .req-list { display: flex; flex-direction: column; }
-  .req-list .r-row {
-    display: flex; align-items: center; gap: 12px;
-    padding: 12px 4px; border-bottom: 1px solid #f5f5f7; font-size: 14px;
-  }
-  .req-list .r-row:last-child { border-bottom: none; }
-  .req-list .r-mail {
-    color: #1d1d1f; font-weight: 600; word-break: break-all;
-    text-decoration: none; flex: 1; min-width: 0;
-  }
-  .req-list .r-meta { color: #86868b; font-size: 13px; flex-shrink: 0; }
-  .req-list .r-del {
-    flex-shrink: 0; width: 26px; height: 26px;
-    border: none; border-radius: 6px; background: transparent;
-    color: #c0c0c6; font-size: 13px; cursor: pointer; line-height: 1;
-  }
-  .req-list .r-del:hover { background: #fdeaea; color: #e02020; }
-
-  /* 页面管理 */
+  /* ============ 页面管理 ============ */
   .pg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
   .pg-item {
-    border: 2px solid #ececf0; border-radius: 10px; overflow: hidden;
-    position: relative; background: #fff;
+    border: 2px solid var(--line); border-radius: var(--radius-sm); overflow: hidden;
+    position: relative; background: var(--card); transition: border-color .15s;
   }
+  .pg-item:hover { border-color: var(--primary-border); }
   .pg-item.off { opacity: 0.35; }
-  .pg-item .thumb { position: relative; background: #f5f5f7; }
+  .pg-item .thumb { position: relative; background: var(--line-2); }
   .pg-item .thumb img { width: 100%; display: block; }
   .pg-item .no {
-    position: absolute; top: 4px; left: 4px; background: rgba(0,0,0,0.55); color: #fff;
-    font-size: 11px; padding: 1px 7px; border-radius: 4px;
+    position: absolute; top: 4px; left: 4px; background: rgba(31,33,40,.6); color: #fff;
+    font-size: 11px; padding: 1px 7px; border-radius: 5px; backdrop-filter: blur(4px);
   }
   .pg-item .ops { display: flex; align-items: center; justify-content: space-between; padding: 5px 6px; }
   .pg-item .ops button {
-    border: none; background: none; font-size: 15px; color: #55555c; padding: 2px 5px; border-radius: 4px;
+    border: none; background: none; font-size: 15px; color: var(--ink-2); padding: 2px 5px; border-radius: 5px;
   }
-  .pg-item .ops button:hover { background: #f2f3f7; }
-  .pg-item .name { font-size: 11px; color: #86868b; text-align: center; padding-bottom: 4px; }
+  .pg-item .ops button:hover { background: var(--primary-soft); }
+  .pg-item .name { font-size: 11px; color: var(--muted); text-align: center; padding-bottom: 4px; }
 
-  /* 文件管理 */
+  /* ============ 文件管理 ============ */
   .file-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
   .file-row input[type=file] { display: none; }
   .btn-ghost {
-    padding: 9px 18px; background: #fff; border: 1px solid #d9d9de;
-    border-radius: 8px; font-size: 13px;
+    padding: 9px 18px; background: #fff; border: 1px solid var(--line);
+    border-radius: 9px; font-size: 13px; font-weight: 500; color: var(--ink-2);
+    transition: border-color .16s, color .16s;
   }
-  .btn-ghost:hover { border-color: #4a7dff; color: #4a7dff; }
-  .file-info { font-size: 13px; color: #55555c; }
-  .progress { width: 100%; height: 8px; background: #f2f3f7; border-radius: 4px; overflow: hidden; margin-top: 10px; display: none; }
-  .progress .fill { height: 100%; background: #4a7dff; width: 0; transition: width .2s; }
-  .qr-preview { max-width: 160px; border-radius: 8px; border: 1px solid #ececf0; display: block; margin-top: 10px; }
-  .loading-inline { color: #86868b; font-size: 13px; padding: 20px 0; text-align: center; }
-</style>
+  .btn-ghost:hover { border-color: var(--primary); color: var(--primary-deep); }
+  .file-info { font-size: 13px; color: var(--ink-2); }
+  .progress { width: 100%; height: 8px; background: var(--line-2); border-radius: 4px; overflow: hidden; margin-top: 10px; display: none; }
+  .progress .fill { height: 100%; background: linear-gradient(90deg, var(--primary) 0%, #2BD474 100%); width: 0; transition: width .2s; }
+  .qr-preview { max-width: 160px; border-radius: 9px; border: 1px solid var(--line); display: block; margin-top: 10px; }
+  .loading-inline { color: var(--muted); font-size: 13px; padding: 24px 0; text-align: center; }
+
+  /* ============ 水印实时预览 ============ */
+  .wm-preview-box { margin-top: 4px; background: var(--line-2); border-radius: 12px; padding: 13px 14px 12px; }
+  .wm-preview-label {
+    font-size: 11.5px; font-weight: 600; color: var(--muted);
+    letter-spacing: .04em; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .wm-preview-label::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--primary); }
+  .wm-preview { position: relative; height: 200px; border-radius: 10px; overflow: hidden; background: #fff; }
+  .wm-preview.disabled { filter: grayscale(1); opacity: .5; }
+  .wm-preview-img {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,.35), transparent 40%),
+      linear-gradient(180deg, #E9EEF5 0%, #DCE4EE 100%);
+  }
+  .wm-preview-img::after {
+    content: ''; position: absolute; left: 22px; right: 22px; top: 26px; bottom: 52px;
+    border-radius: 6px;
+    background: repeating-linear-gradient(180deg, #fff 0 22px, #F2F5F9 22px 24px);
+    box-shadow: 0 2px 10px rgba(16,24,40,.08);
+  }
+  .wm-capsule {
+    position: absolute; left: 50%; bottom: 13px; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(31,33,40,.55); color: #fff;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.28);
+    font-size: 12px; padding: 6px 15px; border-radius: 999px;
+    max-width: 86%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .wm-capsule b { font-weight: 700; }
+  .wm-tile-bg { position: absolute; inset: 0; background-repeat: repeat; background-size: 200px 130px; }
+  .wm-preview-note { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.6; }
+
+  /* ============ 二维码卡片布局 ============ */
+  .qr-layout { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
+  .qr-left {
+    position: relative; width: 160px; height: 160px; flex-shrink: 0;
+    border: 1px dashed var(--line); border-radius: 12px;
+    display: grid; place-items: center; background: var(--line-2);
+  }
+  .qr-left .qr-preview { max-width: 148px; max-height: 148px; margin-top: 0; border: none; border-radius: 8px; }
+  .qr-empty {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 4px;
+    color: var(--muted); font-size: 12px; text-align: center; line-height: 1.5;
+    border-radius: 12px; background: var(--line-2);
+  }
+  .qr-empty svg { width: 30px; height: 30px; opacity: .45; }
+  .qr-right { flex: 1; min-width: 230px; }
+  .qr-right .file-row { margin-bottom: 14px; }
+
+  /* ============ 危险操作卡片 ============ */
+  .card.danger { border-color: rgba(220,38,38,.25); background: linear-gradient(135deg, #FFF7F7 0%, #fff 55%); }
+  .card.danger h2.danger-h { color: var(--danger); }
+  .card.danger h2.danger-h svg { color: var(--danger); }
+
+  /* ============ 上传提示 ============ */
+  .upload-note {
+    margin-top: 14px; display: flex; align-items: flex-start; gap: 8px;
+    font-size: 12.5px; color: var(--muted); line-height: 1.7;
+    background: var(--line-2); border-radius: 9px; padding: 10px 13px;
+  }
+  .upload-note svg { flex-shrink: 0; margin-top: 2px; color: var(--primary-deep); }
+
+  /* ============ 作品集管理（卡片网格） ============ */
+  .pf-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .pf-head h2 {
+    font-size: 15px; display: flex; align-items: center; gap: 8px;
+    padding-bottom: 0; border-bottom: none; margin-bottom: 0;
+  }
+  .pf-head h2 svg { width: 17px; height: 17px; color: var(--primary); }
+  .pf-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(292px, 1fr)); gap: 14px; }
+  .pf-item {
+    display: flex; flex-direction: column; overflow: hidden;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow-sm);
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+  }
+  .pf-item:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+  .pf-item.cur { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(7,193,96,.10), var(--shadow-sm); }
+  .pf-thumb {
+    position: relative; aspect-ratio: 4 / 3; background: var(--line-2);
+    overflow: hidden; border-bottom: 1px solid var(--line-2);
+  }
+  .pf-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pf-thumb-empty {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    color: var(--muted); font-size: 12.5px;
+    background: repeating-linear-gradient(45deg, var(--line-2) 0 10px, #EDF0F5 10px 20px);
+  }
+  .pf-cur-mark {
+    position: absolute; top: 9px; left: 9px;
+    background: var(--primary); color: #fff;
+    font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 999px;
+    box-shadow: 0 2px 6px rgba(7,193,96,.4);
+  }
+  .pf-body { padding: 13px 15px 15px; display: flex; flex-direction: column; gap: 9px; flex: 1; }
+  .pf-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .pf-title {
+    font-size: 15px; font-weight: 600; line-height: 1.35;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
+  .pf-badges { display: flex; gap: 5px; flex-shrink: 0; align-items: center; }
+  .badge {
+    font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 999px;
+    flex-shrink: 0; white-space: nowrap;
+  }
+  .badge.lock { background: #FEF3C7; color: #B45309; }
+  .badge.off { background: var(--line-2); color: var(--muted); }
+  .badge.limit { background: rgba(220,38,38,.08); color: var(--danger); }
+  .badge.cur { background: var(--primary-soft); color: var(--primary-deep); }
+  .pf-meta { font-size: 12px; color: var(--muted); display: flex; gap: 9px; flex-wrap: wrap; align-items: center; }
+  .pf-meta .u {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--line-2); padding: 1px 7px; border-radius: 5px;
+  }
+  .pf-limit-track { height: 6px; background: var(--line-2); border-radius: 3px; overflow: hidden; }
+  .pf-limit-fill {
+    height: 100%; border-radius: 3px;
+    background: linear-gradient(90deg, var(--primary) 0%, #2BD474 100%);
+    transition: width .3s;
+  }
+  .pf-limit-fill.full { background: linear-gradient(90deg, #F87171 0%, var(--danger) 100%); }
+  .pf-ops { display: flex; gap: 7px; margin-top: auto; flex-wrap: wrap; }
+  .pf-ops .btn-mini {
+    padding: 7px 13px; border-radius: 8px; font-size: 12.5px;
+    border: 1px solid var(--line); background: #fff; color: var(--ink-2); font-weight: 500;
+    transition: border-color .16s, color .16s;
+  }
+  .pf-ops .btn-mini:hover { border-color: var(--primary); color: var(--primary-deep); }
+  .pf-ops .btn-mini:disabled { opacity: .35; cursor: not-allowed; }
+  .pf-ops .btn-mini.icon { padding: 7px 8px; display: inline-flex; align-items: center; }
+  .pf-ops .btn-mini.icon.del:hover { border-color: var(--danger); color: var(--danger); background: rgba(220,38,38,.05); }
+
+  /* ============ 作品集选择器 ============ */
+  .pf-selector {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 13px 16px; box-shadow: var(--shadow-sm);
+  }
+  .pf-selector label { font-size: 13px; color: var(--ink-2); font-weight: 500; flex-shrink: 0; }
+  .pf-selector select {
+    flex: 1; min-width: 200px; padding: 9px 13px; border: 1px solid var(--line);
+    border-radius: 9px; font-size: 14px; outline: none; background: #fff;
+    transition: border-color .16s;
+  }
+  .pf-selector select:focus { border-color: var(--primary); }
+  .pf-selector-stats { display: flex; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+  .pf-selector-stats span {
+    font-size: 12px; color: var(--ink-2); background: var(--line-2);
+    padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .pf-selector-stats span b { color: var(--primary-deep); font-variant-numeric: tabular-nums; }
+
+  /* ============ 页面管理工具条 ============ */
+  .pg-toolbar { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 16px; }
+  .pg-toolbar-sp { flex: 1; }
+
+  /* ============ 模态框 ============ */
+  .modal-mask {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(31,33,40,.45); backdrop-filter: blur(3px);
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-mask.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 18px; padding: 26px 24px 22px;
+    width: min(430px, 94vw); max-height: 88vh; overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+    animation: modalIn .2s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+  .modal h3 {
+    font-size: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;
+    padding-bottom: 14px; border-bottom: 1px solid var(--line-2);
+  }
+  .modal h3 svg { width: 18px; height: 18px; color: var(--primary); }
+  .modal .form-row { margin-bottom: 13px; }
+  .modal .form-row label { width: 86px; }
+  .modal .modal-ops { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
+  .modal .link-box {
+    display: flex; gap: 8px; align-items: center;
+    background: var(--line-2); border-radius: 9px; padding: 10px 12px; font-size: 13px;
+    word-break: break-all; margin-bottom: 4px;
+  }
+  .modal .link-box code { flex: 1; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--ink); }
+  .modal .link-box button {
+    border: 1px solid var(--line); background: #fff; border-radius: 7px;
+    font-size: 12px; padding: 5px 10px; flex-shrink: 0;
+  }
+  .modal .link-box button:hover { border-color: var(--primary); color: var(--primary-deep); }
+
+  .seg { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: #fff; }
+  .seg button {
+    flex: 1; padding: 9px 0; border: none; background: #fff; font-size: 13px;
+    color: var(--muted); font-weight: 500; transition: background .16s, color .16s;
+  }
+  .seg button.on { background: var(--primary); color: #fff; font-weight: 600; }
+
+  /* ============ 响应式 ============ */
+  @media (max-width: 700px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .form-row .tip { margin-left: 0; }
+    .form-row label { width: 100%; }
+    .card { padding: 18px 16px; }
+    .topbar { padding: 10px 14px; }
+    .brand-name small { display: none; }
+    .topbar a.view { padding: 7px 10px; }
+    .main { padding: 0 14px; }
+    .tabs { padding: 0 14px; }
+    .pf-list { grid-template-columns: 1fr; }
+    .pf-selector-stats { width: 100%; }
+    .qr-layout { gap: 14px; }
+    .chart { gap: 3px; }
+    .rank-item .name { width: 92px; }
+  }
+  </style>
 </head>
 <body>
 
 <!-- 登录 -->
 <div class="login-wrap" id="login-view" style="display:none">
   <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>
+    </div>
     <h1>作品集管理后台</h1>
     <p class="sub">请输入管理密码登录</p>
     <input type="password" id="login-pass" placeholder="管理密码" autocomplete="current-password">
-    <button class="btn-main" id="login-btn">登录</button>
+    <button class="btn-main" id="login-btn">登 录</button>
     <div class="err" id="login-err"></div>
   </div>
 </div>
@@ -220,36 +533,75 @@
 <!-- 后台 -->
 <div id="app-view" style="display:none">
   <div class="topbar">
-    <div class="t">作品集管理后台</div>
+    <div class="brand-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>
+    </div>
+    <div class="brand-name">作品集管理<small>PORTFOLIO ADMIN</small></div>
     <div class="actions">
-      <a class="view" href="/" target="_blank">查看前台 ↗</a>
+      <a class="view" href="/" target="_blank">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        查看前台
+      </a>
       <button class="logout" id="logout-btn">退出</button>
     </div>
   </div>
 
   <div class="tabs" id="tabs">
-    <button data-tab="overview" class="on">概览</button>
-    <button data-tab="settings">内容设置</button>
-    <button data-tab="pages">页面管理</button>
-    <button data-tab="files">文件管理</button>
-    <button data-tab="requests">使用申请</button>
-    <button data-tab="passwd">修改密码</button>
+    <button data-tab="overview" class="on">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      概览
+    </button>
+    <button data-tab="portfolios">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      作品集
+    </button>
+    <button data-tab="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      内容设置
+    </button>
+    <button data-tab="pages">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+      页面管理
+    </button>
+    <button data-tab="files">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      文件管理
+    </button>
+    <button data-tab="passwd">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      修改密码
+    </button>
   </div>
 
   <div class="main">
+    <!-- 作品集管理 -->
+    <div class="panel" id="panel-portfolios">
+      <div class="pf-head">
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> 我的作品集 <span class="tag" style="font-size:12px;color:#8A8E99;font-weight:normal" id="pf-count"></span></h2>
+        <button class="btn-save" id="pf-new">＋ 新建作品集</button>
+      </div>
+      <div class="pf-list" id="pf-list">
+        <div class="loading-inline">正在加载…</div>
+      </div>
+    </div>
+
     <!-- 概览 -->
     <div class="panel on" id="panel-overview">
       <div class="stat-cards" id="stat-cards"></div>
       <div class="card">
-        <h2>近 14 天访问量</h2>
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> 近 14 天访问量</h2>
         <div class="chart" id="chart"></div>
       </div>
       <div class="grid-2">
-        <div class="card"><h2>设备</h2><div class="rank-list" id="rank-device"></div></div>
-        <div class="card"><h2>地区</h2><div class="rank-list" id="rank-region"></div></div>
+        <div class="card"><h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> 设备</h2><div class="rank-list" id="rank-device"></div></div>
+        <div class="card"><h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> 地区</h2><div class="rank-list" id="rank-region"></div></div>
       </div>
       <div class="card">
-        <h2>最近访客 <span class="tag">最近 100 条</span></h2>
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> 作品集访问排行 <span class="tag">按访问次数</span></h2>
+        <div class="rank-list" id="rank-portfolio"></div>
+      </div>
+      <div class="card">
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 最近访客 <span class="tag">最近 100 条</span></h2>
         <div class="visit-list" id="visit-list"><div class="loading-inline">暂无访客记录</div></div>
       </div>
     </div>
@@ -257,15 +609,29 @@
     <!-- 内容设置 -->
     <div class="panel" id="panel-settings">
       <div class="card">
-        <h2>内容设置 <span class="tag">保存后前台立即生效</span></h2>
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> 站点信息 <span class="tag">全局生效</span></h2>
         <div class="form-row">
           <label>网页标题</label>
           <input type="text" id="set-title" placeholder="浏览器标签页显示的标题">
         </div>
+        <div style="margin-top:16px">
+          <button class="btn-save" id="save-settings">保存设置</button>
+          <span class="ok-msg" id="settings-msg"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 9v6m-3-6h6v6H9z"/></svg> 水印设置 <span class="tag">保护原创内容</span></h2>
         <div class="form-row">
-          <label>底部水印</label>
+          <label>显示水印</label>
           <div class="switch"><input type="checkbox" id="set-wm-on"><span></span></div>
-          <span style="font-size:13px;color:#86868b">显示水印</span>
+        </div>
+        <div class="form-row">
+          <label>水印样式</label>
+          <div class="seg" style="max-width:280px">
+            <button type="button" id="wm-style-capsule" class="on">胶囊水印</button>
+            <button type="button" id="wm-style-tile">斜纹平铺</button>
+          </div>
         </div>
         <div class="form-row">
           <label>水印文字</label>
@@ -276,61 +642,79 @@
           <label>加粗名字</label>
           <input type="text" id="set-wm-name" placeholder="水印中加粗显示的名字">
         </div>
+        <div class="wm-preview-box">
+          <div class="wm-preview-label">实时预览</div>
+          <div class="wm-preview" id="wm-preview">
+            <div class="wm-preview-img"></div>
+            <div class="wm-capsule" id="wm-prev-capsule">内容由 <b>名字</b> 创作 · 感谢您的关注</div>
+            <div class="wm-tile-bg" id="wm-prev-tile" style="display:none"></div>
+          </div>
+          <div class="wm-preview-note" id="wm-prev-note">胶囊：底部居中磨砂条 · 斜纹平铺：半透明文字覆盖全屏（防截图分享）</div>
+        </div>
+        <div style="margin-top:16px">
+          <button class="btn-save" id="save-settings2">保存设置</button>
+          <span class="ok-msg" id="settings-msg2"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.13 1 .37 2 .72 2.8a2 2 0 0 1-.45 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.45c.9.35 1.9.6 2.8.72A2 2 0 0 1 22 16.9z"/></svg> 联系方式 <span class="tag">前台底部按钮</span></h2>
         <div class="form-row">
           <label>电话按钮</label>
           <div class="switch"><input type="checkbox" id="set-phone-on"><span></span></div>
-          <span style="font-size:13px;color:#86868b">显示电话按钮</span>
         </div>
         <div class="form-row">
           <label>电话号码</label>
-          <input type="text" id="set-phone" placeholder="仅数字，例如 13999679589">
+          <input type="text" id="set-phone" placeholder="仅数字，例如 13999679589" inputmode="numeric">
         </div>
         <div class="form-row">
-          <label>微信二维码</label>
+          <label>微信按钮</label>
           <div class="switch"><input type="checkbox" id="set-qr-on"><span></span></div>
-          <span style="font-size:13px;color:#86868b">显示微信按钮</span>
         </div>
         <div class="form-row">
           <label>微信号</label>
           <input type="text" id="set-wxid" placeholder="选填，填写后手机端可一键复制并打开微信">
           <div class="tip">填了微信号：手机访客点击微信按钮会自动复制，一键打开微信搜索添加</div>
         </div>
-        <div class="form-row" style="align-items:flex-start">
-          <label style="padding-top:6px">二维码图片</label>
-          <div style="flex:1;min-width:0">
+        <div style="margin-top:16px">
+          <button class="btn-save" id="save-settings3">保存设置</button>
+          <span class="ok-msg" id="settings-msg3"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h3v3H7zM14 14h3v3h-3zM14 7h3v3h-3zM7 14h3v3H7z"/></svg> 微信二维码 <span class="tag">前台扫码加好友</span></h2>
+        <div class="qr-layout">
+          <div class="qr-left">
             <img class="qr-preview" id="qr-preview" alt="当前二维码">
-            <div class="file-row" style="margin-top:12px">
+            <div class="qr-empty" id="qr-empty" style="display:none">未上传<br>二维码</div>
+          </div>
+          <div class="qr-right">
+            <div class="file-row">
               <input type="file" id="qr-file" accept="image/*">
               <button class="btn-ghost" id="qr-pick">选择图片</button>
               <button class="btn-save" id="qr-upload" style="padding:9px 22px">上传替换</button>
-              <span class="file-info" id="qr-upload-status" style="color:#a0a0a6"></span>
             </div>
+            <div class="file-info" id="qr-upload-status" style="color:var(--muted)"></div>
             <div class="progress" id="qr-progress"><div class="fill"></div></div>
           </div>
         </div>
-        <div style="margin-top:18px">
-          <button class="btn-save" id="save-settings">保存设置</button>
-          <span class="ok-msg" id="settings-msg"></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 使用申请 -->
-    <div class="panel" id="panel-requests">
-      <div class="card">
-        <h2>使用申请 <span class="tag">感谢页提交的邮箱 · 最近 500 条</span></h2>
-        <div class="loading-inline" id="req-loading">正在加载…</div>
-        <div class="req-list" id="req-list"></div>
       </div>
     </div>
 
     <!-- 页面管理 -->
     <div class="panel" id="panel-pages">
+      <div class="pf-selector">
+        <label>操作作品集</label>
+        <select id="pg-pf-select"></select>
+        <div class="pf-selector-stats" id="pg-stats"></div>
+      </div>
       <div class="card">
-        <h2>页面管理 <span class="tag">隐藏不需要展示的页，调整前后顺序</span></h2>
-        <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/></svg> 页面管理 <span class="tag">隐藏不需要展示的页，调整前后顺序</span></h2>
+        <div class="pg-toolbar">
           <button class="btn-ghost" id="pg-all">全部显示</button>
           <button class="btn-ghost" id="pg-reset">恢复原始顺序</button>
+          <span class="pg-toolbar-sp"></span>
           <button class="btn-save" id="pg-save" style="padding:9px 22px">保存页面设置</button>
           <span class="ok-msg" id="pg-msg"></span>
         </div>
@@ -341,26 +725,32 @@
 
     <!-- 文件管理 -->
     <div class="panel" id="panel-files">
+      <div class="pf-selector">
+        <label>操作作品集</label>
+        <select id="file-pf-select"></select>
+        <div class="pf-selector-stats" id="file-pf-stats"></div>
+      </div>
       <div class="card">
-        <h2>作品集管理 <span class="tag">上传 / 替换 / 删除</span></h2>
-        <div class="file-info" id="pdf-info">未上传</div>
-        <div class="file-row" style="margin-top:14px">
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 作品集上传 <span class="tag">上传 / 替换页面图片</span></h2>
+        <div class="file-row">
           <input type="file" id="pdf-file" accept="application/pdf,.pdf">
           <button class="btn-ghost" id="pdf-pick">选择 PDF 文件</button>
-          <button class="btn-save" id="pdf-upload" style="padding:9px 22px">上传替换</button>
+          <button class="btn-save" id="pdf-upload" style="padding:9px 22px">上传</button>
         </div>
+        <div class="file-info" id="pdf-info" style="margin-top:10px">未上传</div>
         <div class="progress" id="pdf-progress"><div class="fill"></div></div>
-        <div class="file-info" style="margin-top:8px;color:#a0a0a6" id="pdf-upload-status"></div>
-        <div class="file-info" style="margin-top:14px;color:#a0a0a6">
+        <div class="file-info" style="margin-top:8px;color:var(--muted)" id="pdf-upload-status"></div>
+        <div class="upload-note">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
           上传时会自动把每页转成高清图片，前台秒开。首次上传大文件需要几分钟，请耐心等待进度完成。
         </div>
       </div>
-      <div class="card" id="delete-card" style="display:none">
-        <h2>删除作品集 <span class="tag">清除所有图片和 PDF，保留设置</span></h2>
-        <p style="font-size:13px;color:#86868b;margin-bottom:14px">删除后前台将无法访问作品集，站点设置（标题、联系方式、二维码）不受影响。</p>
+      <div class="card danger" id="delete-card">
+        <h2 class="danger-h"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> 删除作品集 <span class="tag">不可撤销</span></h2>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px">删除后该作品集链接立即失效，所有页面图片将被永久清除。站点设置与其他作品集不受影响。</p>
         <div style="display:flex;gap:10px;align-items:center">
           <button class="btn-danger" id="pdf-delete">删除当前作品集</button>
-          <span class="ok-msg" id="delete-msg" style="color:#e02020"></span>
+          <span class="ok-msg" id="delete-msg"></span>
         </div>
       </div>
     </div>
@@ -368,7 +758,7 @@
     <!-- 修改密码 -->
     <div class="panel" id="panel-passwd">
       <div class="card" style="max-width:440px">
-        <h2>修改管理密码</h2>
+        <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 修改管理密码</h2>
         <div class="form-row"><label>新密码</label><input type="password" id="np1" class="pw-input" placeholder="至少 8 位" autocomplete="new-password"></div>
         <div class="form-row"><label>确认密码</label><input type="password" id="np2" class="pw-input" placeholder="再输入一次" autocomplete="new-password"></div>
         <div style="margin-top:12px">
@@ -376,6 +766,46 @@
           <span class="ok-msg" id="passwd-msg"></span>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- 作品集 新建/编辑 弹窗 -->
+<div class="modal-mask" id="pf-modal">
+  <div class="modal">
+    <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> <span id="pf-modal-title">新建作品集</span></h3>
+    <div class="form-row">
+      <label>名称</label>
+      <input type="text" id="pfm-title" class="pw-input" placeholder="作品集名称，如：品牌设计 2026" maxlength="100">
+    </div>
+    <div class="form-row">
+      <label>访问链接</label>
+      <input type="text" id="pfm-slug" class="pw-input" placeholder="字母数字连字符，如 brand-2026" maxlength="30">
+      <div class="tip">访问地址：<b id="pfm-url-preview">/</b>（留空自动生成）</div>
+    </div>
+    <div class="form-row">
+      <label>访问密码</label>
+      <input type="text" id="pfm-password" class="pw-input" placeholder="留空 = 无需密码" maxlength="64">
+      <div class="tip" id="pfm-pass-tip">设置后访客需输入密码才能查看</div>
+    </div>
+    <div class="form-row" id="pfm-clear-row" style="display:none">
+      <label>清除密码</label>
+      <div class="switch"><input type="checkbox" id="pfm-clear-pass"><span></span></div>
+      <span style="font-size:13px;color:var(--muted)">勾选后移除访问密码</span>
+    </div>
+    <div class="form-row">
+      <label>访问上限</label>
+      <input type="text" id="pfm-limit" class="pw-input" placeholder="0 = 不限制" inputmode="numeric" maxlength="7">
+      <div class="tip">累计访问次数达到上限后链接失效（当前 <b id="pfm-views">0</b> 次）</div>
+    </div>
+    <div class="form-row">
+      <label>发布状态</label>
+      <div class="switch"><input type="checkbox" id="pfm-published" checked><span></span></div>
+      <span style="font-size:13px;color:var(--muted)">对外可见</span>
+    </div>
+    <div class="modal-ops">
+      <button class="btn-ghost" id="pfm-cancel">取消</button>
+      <button class="btn-save" id="pfm-save">保 存</button>
     </div>
   </div>
 </div>
@@ -462,9 +892,300 @@ function showLogin() {
 function showApp() {
   $('login-view').style.display = 'none';
   $('app-view').style.display = 'block';
+  loadPortfolios();
   loadSettingsAndFiles();
   loadStats();
 }
+
+// ---------- 作品集管理 ----------
+let PF_LIST = [];
+let curPfId = null; // 当前操作的作品集
+
+async function loadPortfolios() {
+  try {
+    const d = await API.req('/api/portfolios');
+    if (!d.ok) return;
+    PF_LIST = d.portfolios || [];
+    if (!PF_LIST.length) {
+      // 全新站点：自动创建第一个作品集
+      try {
+        const created = await API.req('/api/portfolios', { method: 'POST', json: { title: '我的第一个作品集' } });
+        if (created.ok) {
+          const d2 = await API.req('/api/portfolios');
+          if (d2.ok) PF_LIST = d2.portfolios || [];
+        }
+      } catch (e) {}
+    }
+    if (!curPfId && PF_LIST.length) curPfId = PF_LIST[0].id;
+    renderPfList();
+    renderPfSelectors();
+    renderPfRank(); // 作品集列表就绪后，回填概览里的作品集排行标题
+  } catch (e) {}
+}
+
+// 作品集卡片缩略图（取当前版本第 1 页）
+function pfThumb(p) {
+  if (!p.pages || !p.pages.count || !p.pages.version) return null;
+  const slug = p.r2_prefix === '' ? 'default' : p.slug; // 兼容旧版无前缀存储
+  return '/api/file/' + encodeURIComponent(slug) + '/page/v' + p.pages.version + '/1.webp';
+}
+
+function renderPfList() {
+  const list = $('pf-list');
+  if (!PF_LIST.length) {
+    list.innerHTML = '<div class="loading-inline">暂无作品集，点击右上角新建</div>';
+    return;
+  }
+  $('pf-count').textContent = PF_LIST.length + ' / 20 个';
+  list.innerHTML = '';
+  PF_LIST.forEach((p, i) => {
+    const el = document.createElement('div');
+    el.className = 'pf-item' + (p.id === curPfId ? ' cur' : '');
+    const thumb = pfThumb(p);
+    const badges = [];
+    if (p.password_protected) badges.push('<span class="badge lock">🔒</span>');
+    if (!p.is_published) badges.push('<span class="badge off">未发布</span>');
+    if (p.visit_limit > 0) badges.push('<span class="badge limit">' + p.views + '/' + p.visit_limit + '</span>');
+    const limitPct = p.visit_limit > 0 ? Math.min(100, Math.round((p.views / p.visit_limit) * 100)) : 0;
+    el.innerHTML =
+      '<div class="pf-thumb">' +
+      (thumb
+        ? '<img loading="lazy" src="' + thumb + '" alt="" draggable="false">'
+        : '<div class="pf-thumb-empty">未上传</div>') +
+      (p.id === curPfId ? '<span class="pf-cur-mark">当前</span>' : '') +
+      '</div>' +
+      '<div class="pf-body">' +
+      '<div class="pf-title-row">' +
+      '<div class="pf-title" title="' + esc(p.title) + '">' + esc(p.title) + '</div>' +
+      '<div class="pf-badges">' + badges.join('') + '</div>' +
+      '</div>' +
+      '<div class="pf-meta">' +
+      '<span class="u">/' + esc(p.slug) + '</span>' +
+      '<span>' + (p.page_count || 0) + ' 页</span>' +
+      '<span>' + (p.views || 0) + ' 次访问</span>' +
+      '</div>' +
+      (p.visit_limit > 0
+        ? '<div class="pf-limit-track" title="访问上限进度"><div class="pf-limit-fill' + (limitPct >= 100 ? ' full' : '') + '" style="width:' + limitPct + '%"></div></div>'
+        : '') +
+      '<div class="pf-ops">' +
+      '<button class="btn-mini" data-op="view" data-id="' + p.id + '">查看</button>' +
+      '<button class="btn-mini" data-op="copy" data-id="' + p.id + '">复制链接</button>' +
+      '<button class="btn-mini" data-op="edit" data-id="' + p.id + '">编辑</button>' +
+      '<button class="btn-mini icon" data-op="up" data-id="' + p.id + '" title="上移" ' + (i === 0 ? 'disabled' : '') + '><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button>' +
+      '<button class="btn-mini icon" data-op="down" data-id="' + p.id + '" title="下移" ' + (i === PF_LIST.length - 1 ? 'disabled' : '') + '><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>' +
+      '<button class="btn-mini icon del" data-op="del" data-id="' + p.id + '" title="删除"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' +
+      '</div>' +
+      '</div>';
+    list.appendChild(el);
+  });
+}
+
+function renderPfSelectors() {
+  const opts = PF_LIST.map((p) => '<option value="' + p.id + '">' + esc(p.title) + ' · /' + esc(p.slug) + '</option>').join('');
+  const pgSel = $('pg-pf-select');
+  const fileSel = $('file-pf-select');
+  pgSel.innerHTML = opts;
+  fileSel.innerHTML = opts;
+  if (curPfId != null) {
+    pgSel.value = String(curPfId);
+    fileSel.value = String(curPfId);
+  }
+  updatePfInfo();
+  pgState = null; // 切换作品集后重置页面管理缓存
+}
+
+function getPf(id) {
+  return PF_LIST.find((p) => p.id === Number(id)) || null;
+}
+
+// 当前选中作品集变化时刷新上传/页面面板信息
+function updatePfInfo() {
+  const p = getPf(curPfId);
+  if (!p) return;
+  // 选择器旁边的统计胶囊
+  const statsHtml =
+    '<span><b>' + (p.page_count || 0) + '</b> 页</span>' +
+    '<span><b>' + (p.views || 0) + '</b> 次访问</span>' +
+    (p.pages && p.pages.version ? '<span>v<b>' + p.pages.version + '</b></span>' : '') +
+    (p.is_published ? '' : '<span style="color:var(--warning);background:#FEF3C7">未发布</span>');
+  $('pg-stats').innerHTML = statsHtml;
+  $('file-pf-stats').innerHTML = statsHtml;
+  if (p.pages && p.pages.count > 0) {
+    $('pdf-info').innerHTML = esc(p.title) + '：v' + p.pages.version + ' · 共 ' + p.pages.count + ' 页';
+    $('delete-card').style.display = 'block';
+    $('pdf-upload').textContent = '上传替换';
+  } else {
+    $('pdf-info').textContent = '该作品集尚未上传内容，请选择 PDF 文件上传';
+    $('delete-card').style.display = 'block';
+    $('pdf-upload').textContent = '上传作品集';
+  }
+}
+
+$('pg-pf-select').addEventListener('change', (e) => {
+  curPfId = parseInt(e.target.value, 10);
+  $('file-pf-select').value = e.target.value;
+  pgState = null;
+  renderPfList();
+  updatePfInfo();
+  initPageManager();
+});
+$('file-pf-select').addEventListener('change', (e) => {
+  curPfId = parseInt(e.target.value, 10);
+  $('pg-pf-select').value = e.target.value;
+  renderPfList();
+  updatePfInfo();
+});
+
+// 列表操作
+$('pf-list').addEventListener('click', async (e) => {
+  const btn = e.target.closest('button[data-op]');
+  if (!btn) return;
+  const p = getPf(btn.dataset.id);
+  if (!p) return;
+  const op = btn.dataset.op;
+  if (op === 'up' || op === 'down') {
+    // 上下移动并持久化新顺序
+    const idx = PF_LIST.findIndex((x) => x.id === p.id);
+    const to = op === 'up' ? idx - 1 : idx + 1;
+    if (to < 0 || to >= PF_LIST.length) return;
+    btn.disabled = true;
+    [PF_LIST[idx], PF_LIST[to]] = [PF_LIST[to], PF_LIST[idx]];
+    renderPfList();
+    try {
+      const d = await API.req('/api/portfolios', {
+        method: 'PUT',
+        json: { order: PF_LIST.map((x) => x.id) },
+      });
+      if (!d.ok) {
+        PF_LIST.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+        renderPfList();
+        alert(d.error || '排序保存失败');
+      } else {
+        PF_LIST.forEach((x, i) => (x.sort_order = i));
+        renderPfSelectors();
+      }
+    } catch (err) {
+      PF_LIST.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      renderPfList();
+      alert('网络错误，排序未保存');
+    }
+    return;
+  }
+  if (op === 'view') {
+    window.open('/' + encodeURIComponent(p.slug), '_blank');
+  } else if (op === 'copy') {
+    const url = location.origin + '/' + p.slug;
+    try {
+      await navigator.clipboard.writeText(url);
+      btn.textContent = '已复制 ✓';
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      btn.textContent = '已复制 ✓';
+    }
+    setTimeout(() => (btn.textContent = '复制链接'), 1500);
+  } else if (op === 'edit') {
+    openPfModal(p);
+  } else if (op === 'del') {
+    if (!confirm('确定删除作品集「' + p.title + '」吗？\n\n所有页面图片将被永久清除，此操作不可撤销。')) return;
+    btn.disabled = true;
+    btn.textContent = '删除中…';
+    try {
+      const d = await API.req('/api/portfolios?id=' + p.id, { method: 'DELETE' });
+      if (d.ok) {
+        if (curPfId === p.id) curPfId = null;
+        await loadPortfolios();
+      } else {
+        alert(d.error || '删除失败');
+        btn.disabled = false;
+        btn.textContent = '删除';
+      }
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = '删除';
+    }
+  }
+});
+
+// ---------- 新建/编辑弹窗 ----------
+let modalMode = 'new'; // new | edit
+let modalEditId = null;
+
+function openPfModal(p) {
+  modalMode = p ? 'edit' : 'new';
+  modalEditId = p ? p.id : null;
+  $('pf-modal-title').textContent = p ? '编辑作品集' : '新建作品集';
+  $('pfm-title').value = p ? p.title : '';
+  $('pfm-slug').value = p ? p.slug : '';
+  $('pfm-password').value = '';
+  $('pfm-limit').value = p ? (p.visit_limit || 0) : '';
+  $('pfm-published').checked = p ? p.is_published : true;
+  $('pfm-views').textContent = p ? (p.views || 0) : 0;
+  $('pfm-pass-tip').textContent = p && p.password_protected
+    ? '已设置密码。留空 = 保持不变，输入新值 = 替换'
+    : '设置后访客需输入密码才能查看';
+  $('pfm-clear-row').style.display = p && p.password_protected ? 'flex' : 'none';
+  $('pfm-clear-pass').checked = false;
+  updateSlugPreview();
+  $('pf-modal').classList.add('open');
+  setTimeout(() => $('pfm-title').focus(), 50);
+}
+
+function updateSlugPreview() {
+  const v = $('pfm-slug').value.trim();
+  $('pfm-url-preview').textContent = v ? '/' + v : '/（自动生成）';
+}
+$('pfm-slug').addEventListener('input', updateSlugPreview);
+
+$('pf-new').addEventListener('click', () => openPfModal(null));
+$('pfm-cancel').addEventListener('click', () => $('pf-modal').classList.remove('open'));
+$('pf-modal').addEventListener('click', (e) => {
+  if (e.target === $('pf-modal')) $('pf-modal').classList.remove('open');
+});
+
+$('pfm-save').addEventListener('click', async () => {
+  const btn = $('pfm-save');
+  const title = $('pfm-title').value.trim();
+  if (!title) { $('pfm-title').focus(); return; }
+  const slug = $('pfm-slug').value.trim();
+  const password = $('pfm-password').value;
+  const visitLimit = Math.max(0, parseInt($('pfm-limit').value, 10) || 0);
+
+  btn.disabled = true; btn.textContent = '保存中…';
+  try {
+    let d;
+    if (modalMode === 'new') {
+      d = await API.req('/api/portfolios', {
+        method: 'POST',
+        json: { title, slug, password: password || undefined, visit_limit: visitLimit },
+      });
+    } else {
+      const body = {
+        id: modalEditId,
+        title,
+        slug,
+        visit_limit: visitLimit,
+        is_published: $('pfm-published').checked,
+      };
+      if (password) body.password = password;
+      if ($('pfm-clear-pass').checked) body.clear_password = true;
+      d = await API.req('/api/portfolios', { method: 'PUT', json: body });
+    }
+    if (d.ok) {
+      $('pf-modal').classList.remove('open');
+      await loadPortfolios();
+    } else {
+      alert(d.error || '保存失败');
+    }
+  } catch (e) {
+    alert('网络错误，请重试');
+  }
+  btn.disabled = false; btn.textContent = '保 存';
+});
 
 // ---------- 登录 ----------
 async function doLogin() {
@@ -507,56 +1228,48 @@ $('tabs').addEventListener('click', (e) => {
   $('panel-' + b.dataset.tab).classList.add('on');
   if (b.dataset.tab === 'overview') loadStats();
   if (b.dataset.tab === 'pages') initPageManager();
-  if (b.dataset.tab === 'requests') loadRequests();
 });
 
-// ---------- 使用申请 ----------
-async function loadRequests() {
-  const list = $('req-list');
-  const loading = $('req-loading');
-  loading.style.display = 'block';
-  try {
-    const d = await API.req('/api/request');
-    loading.style.display = 'none';
-    if (!d.ok) {
-      list.innerHTML = '<div class="loading-inline">' + esc(d.error || '加载失败') + '</div>';
-      return;
-    }
-    if (!d.list || !d.list.length) {
-      list.innerHTML = '<div class="loading-inline">还没有人提交申请</div>';
-      return;
-    }
-    list.innerHTML = '';
-    d.list.forEach((r) => {
-      const row = document.createElement('div');
-      row.className = 'r-row';
-      const dev = /mobile|android|iphone/i.test(r.ua || '') ? '手机' : /mac|windows|linux/i.test(r.ua || '') ? '电脑' : '-';
-      row.innerHTML =
-        '<span class="r-mail">' + esc(r.email) + '</span>' +
-        '<span class="r-meta">' + esc(maskIp(r.ip) || '-') + ' · ' + esc(dev) + '</span>' +
-        '<span class="v-time" title="' + esc(fmtTime(r.ts)) + '">' + esc(fmtVisitTime(r.ts)) + '</span>' +
-        '<button class="r-del" data-id="' + esc(r.id) + '" title="删除">✕</button>';
-      list.appendChild(row);
-    });
-  } catch (e) {
-    loading.style.display = 'none';
-    list.innerHTML = '<div class="loading-inline">加载失败，请刷新重试</div>';
-  }
+// ---------- 内容设置（分组卡片 + 水印实时预览） ----------
+let WM_STYLE = 'capsule'; // capsule | tile
+
+function updateWmPreview() {
+  const text = $('set-wm-text').value;
+  const name = $('set-wm-name').value;
+  const raw = (text || '内容由 {name} 创作 · 感谢您的关注').replace(/\{name\}/g, name || '名字');
+  // 胶囊
+  const capEl = $('wm-prev-capsule');
+  capEl.innerHTML = esc(raw).replace(esc(name || '名字'), '<b>' + esc(name || '名字') + '</b>');
+  // 斜纹平铺（SVG 背景平铺，与前台一致）
+  const svgText = String(raw).replace(/[&<>]/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+  const svg =
+    "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='130'>" +
+    "<text x='100' y='70' font-size='12' fill='rgba(255,255,255,0.16)' font-family='-apple-system,PingFang SC,Microsoft YaHei,sans-serif' text-anchor='middle' transform='rotate(-22 100 60)'>" +
+    svgText + '</text></svg>';
+  $('wm-prev-tile').style.backgroundImage = "url(\"data:image/svg+xml," + encodeURIComponent(svg) + "\")";
+  // 样式切换
+  const capsule = WM_STYLE === 'capsule';
+  capEl.style.display = capsule ? 'flex' : 'none';
+  $('wm-prev-tile').style.display = capsule ? 'none' : 'block';
+  $('wm-preview').classList.toggle('tile-mode', !capsule);
+  $('wm-prev-note').textContent = capsule
+    ? '胶囊：底部居中磨砂条，点击跳转感谢页'
+    : '斜纹平铺：半透明文字覆盖全屏（防截图分享）';
+  // 水印总开关关闭时预览置灰
+  $('wm-preview').classList.toggle('disabled', !$('set-wm-on').checked);
 }
-$('req-list').addEventListener('click', async (e) => {
-  const b = e.target.closest('.r-del');
-  if (!b) return;
-  if (!confirm('确定删除此申请？')) return;
-  b.disabled = true;
-  try {
-    const d = await API.req('/api/request?id=' + b.dataset.id, { method: 'DELETE' });
-    if (d.ok) b.closest('.r-row').remove();
-  } catch (err) {
-    b.disabled = false;
-  }
-});
+function setWmStyle(s) {
+  WM_STYLE = s === 'tile' ? 'tile' : 'capsule';
+  $('wm-style-capsule').classList.toggle('on', WM_STYLE === 'capsule');
+  $('wm-style-tile').classList.toggle('on', WM_STYLE === 'tile');
+  updateWmPreview();
+}
+$('wm-style-capsule').addEventListener('click', () => setWmStyle('capsule'));
+$('wm-style-tile').addEventListener('click', () => setWmStyle('tile'));
+$('set-wm-text').addEventListener('input', updateWmPreview);
+$('set-wm-name').addEventListener('input', updateWmPreview);
+$('set-wm-on').addEventListener('change', updateWmPreview);
 
-// ---------- 内容设置 + 文件信息（合并为单次API调用） ----------
 async function loadSettingsAndFiles() {
   try {
     const d = await API.req('/api/config?fresh=1');
@@ -565,31 +1278,29 @@ async function loadSettingsAndFiles() {
     // 设置
     $('set-title').value = c.title || '';
     $('set-wm-on').checked = c.wm_enabled;
+    setWmStyle(c.wm_style);
     $('set-wm-text').value = c.wm_text || '';
     $('set-wm-name').value = c.wm_name || '';
     $('set-phone-on').checked = c.phone_enabled;
     $('set-phone').value = c.phone || '';
     $('set-qr-on').checked = c.qr_enabled;
     $('set-wxid').value = c.wx_id || '';
-    // 文件信息
-    if (d.manifest) {
-      const m = d.manifest;
-      $('pdf-info').innerHTML =
-        '当前作品集：<b>v' + esc(m.version) + '</b> · 共 ' + esc(m.count) + ' 页';
-      $('delete-card').style.display = 'block';
-      $('pdf-upload').textContent = '上传替换';
-    } else {
-      $('pdf-info').textContent = '尚未上传作品集，请选择 PDF 文件上传';
-      $('delete-card').style.display = 'none';
-      $('pdf-upload').textContent = '上传作品集';
-    }
+    updateWmPreview();
+    // 二维码预览
     if (d.qr_version > 0) {
       $('qr-preview').src = '/api/file/qrcode?v=' + d.qr_version;
+      $('qr-preview').style.display = 'block';
+      $('qr-empty').style.display = 'none';
+    } else {
+      $('qr-preview').style.display = 'none';
+      $('qr-empty').style.display = 'flex';
     }
   } catch (e) {}
 }
-$('save-settings').addEventListener('click', async () => {
-  const btn = $('save-settings');
+
+// 三个分组的保存按钮共用一个提交函数
+async function saveSettingsGroup(btnId, msgId) {
+  const btn = $(btnId);
   btn.disabled = true; btn.textContent = '保存中…';
   try {
     const d = await API.req('/api/config', {
@@ -599,21 +1310,29 @@ $('save-settings').addEventListener('click', async () => {
         wm_enabled: $('set-wm-on').checked,
         wm_text: $('set-wm-text').value,
         wm_name: $('set-wm-name').value,
+        wm_style: WM_STYLE,
         phone_enabled: $('set-phone-on').checked,
         phone: $('set-phone').value,
         qr_enabled: $('set-qr-on').checked,
         wx_id: $('set-wxid').value,
       },
     });
-    $('settings-msg').textContent = d.ok ? '已保存 ✓ 前台立即生效' : d.error || '保存失败';
+    $(msgId).textContent = d.ok ? '已保存 ✓ 前台立即生效' : d.error || '保存失败';
+    // 同步其他分组的提示
+    ['settings-msg', 'settings-msg2', 'settings-msg3'].forEach((id) => {
+      if (id !== msgId && d.ok) $(id).textContent = '';
+    });
     if (d.ok) {
       // 清除前台边缘缓存，确保配置立即生效
       try { await fetch('/api/config?fresh=1', { cache: 'no-store' }); } catch (e) {}
     }
-  } catch (e) { $('settings-msg').textContent = '保存失败'; }
+  } catch (e) { $(msgId).textContent = '保存失败'; }
   btn.disabled = false; btn.textContent = '保存设置';
-  setTimeout(() => ($('settings-msg').textContent = ''), 2500);
-});
+  setTimeout(() => ($(msgId).textContent = ''), 2500);
+}
+$('save-settings').addEventListener('click', () => saveSettingsGroup('save-settings', 'settings-msg'));
+$('save-settings2').addEventListener('click', () => saveSettingsGroup('save-settings2', 'settings-msg2'));
+$('save-settings3').addEventListener('click', () => saveSettingsGroup('save-settings3', 'settings-msg3'));
 
 // ---------- 文件信息（已合并到 loadSettingsAndFiles） ----------
 
@@ -630,6 +1349,8 @@ $('pdf-file').addEventListener('change', () => {
 $('pdf-upload').addEventListener('click', async () => {
   const f = $('pdf-file').files[0];
   const status = $('pdf-upload-status');
+  const curPf = getPf(curPfId);
+  if (!curPf) { status.textContent = '请先在上方选择要上传到的作品集'; return; }
   if (!f) { status.textContent = '请先选择 PDF 文件'; return; }
   const btn = $('pdf-upload');
   const bar = $('pdf-progress');
@@ -649,6 +1370,7 @@ $('pdf-upload').addEventListener('click', async () => {
     setP(bar, 4); status.textContent = '正在准备上传…';
     const beginFd = new FormData();
     beginFd.append('type', 'pages_begin');
+    beginFd.append('portfolio_id', String(curPfId));
     const begin = await postForm(beginFd);
     const version = begin.version;
 
@@ -714,6 +1436,7 @@ $('pdf-upload').addEventListener('click', async () => {
       const uploadP = (async () => {
         const fd = new FormData();
         fd.append('type', 'page_image');
+        fd.append('portfolio_id', String(curPfId));
         fd.append('version', String(version));
         fd.append('index', String(idx));
         fd.append('file', blob, idx + fileExt);
@@ -736,13 +1459,14 @@ $('pdf-upload').addEventListener('click', async () => {
     setP(bar, 97); status.textContent = '正在完成…';
     const fd = new FormData();
     fd.append('type', 'pages_manifest');
+    fd.append('portfolio_id', String(curPfId));
     fd.append('manifest', JSON.stringify({ version, count: n, pages: dims }));
     await postForm(fd);
 
     setP(bar, 100);
-    status.textContent = '上传完成 ✓ 共 ' + n + ' 页，前台已自动更新';
+    status.textContent = '上传完成 ✓ 「' + curPf.title + '」共 ' + n + ' 页，前台已自动更新';
     pgState = null;
-    loadSettingsAndFiles();
+    await loadPortfolios();
     $('pdf-file').value = '';
   } catch (e) {
     status.textContent = '上传失败：' + (e.message || e);
@@ -751,18 +1475,21 @@ $('pdf-upload').addEventListener('click', async () => {
   btn.disabled = false; btn.textContent = '上传替换';
 });
 
-// ---------- 删除作品集 ----------
+// ---------- 删除当前作品集 ----------
 $('pdf-delete').addEventListener('click', async () => {
-  if (!confirm('确定删除当前作品集吗？\n\n所有页面图片和 PDF 文件将被永久清除，此操作不可撤销。\n站点设置（标题、联系方式、二维码）不受影响。')) return;
+  const p = getPf(curPfId);
+  if (!p) { $('delete-msg').style.color = '#e02020'; $('delete-msg').textContent = '请先选择作品集'; return; }
+  if (!confirm('确定删除作品集「' + p.title + '」吗？\n\n所有页面图片将被永久清除，此操作不可撤销。\n站点设置（标题、联系方式、二维码）不受影响。')) return;
   const btn = $('pdf-delete');
   btn.disabled = true; btn.textContent = '删除中…';
   $('delete-msg').textContent = '';
   try {
-    const d = await API.req('/api/upload', { method: 'DELETE' });
+    const d = await API.req('/api/portfolios?id=' + p.id, { method: 'DELETE' });
     if (d.ok) {
       $('delete-msg').textContent = '已删除 ✓';
       $('delete-msg').style.color = '#34c759';
-      loadSettingsAndFiles();
+      pgState = null;
+      await loadPortfolios();
       setTimeout(() => { $('delete-msg').textContent = ''; }, 3000);
     } else {
       $('delete-msg').textContent = d.error || '删除失败';
@@ -821,15 +1548,23 @@ $('qr-upload').addEventListener('click', async () => {
 // ---------- 页面管理 ----------
 let pgState = null;
 let pgVersion = 0;
+let pgSlug = 'default'; // 当前页面管理对应的作品集 slug
+let pgPfId = null;
 async function initPageManager() {
-  if (pgState) return;
+  const p = getPf(curPfId);
+  if (!p) { $('pg-loading').textContent = '请先在上方选择作品集'; $('pg-loading').style.display = 'block'; return; }
+  if (pgState && pgPfId === curPfId) return;
+  $('pg-loading').style.display = 'block';
+  $('pg-loading').textContent = '正在加载页面缩略图…';
   try {
-    const d = await API.req('/api/config?fresh=1');
+    const d = await API.req('/api/config?fresh=1&slug=' + encodeURIComponent(p.slug));
     if (!d.ok || !d.manifest || !d.manifest.count) {
-      $('pg-loading').textContent = '尚未上传 PDF，请先在「文件管理」上传';
+      $('pg-loading').textContent = '「' + p.title + '」尚未上传 PDF，请先在「文件管理」上传';
       return;
     }
     pgVersion = d.manifest.version;
+    pgSlug = p.slug;
+    pgPfId = curPfId;
     const cfgPages = d.config.pages;
     const all = Array.from({ length: d.manifest.count }, (_, i) => i + 1);
     const onSet = Array.isArray(cfgPages) && cfgPages.length ? new Set(cfgPages) : null;
@@ -848,7 +1583,7 @@ function renderPgGrid() {
     el.className = 'pg-item' + (item.on ? '' : ' off');
     el.dataset.idx = idx;
     el.innerHTML =
-      '<div class="thumb"><img loading="lazy" decoding="async" src="/api/file/page/v' + pgVersion + '/' + item.no + '.webp" draggable="false"><span class="no">' + item.no + '</span></div>' +
+      '<div class="thumb"><img loading="lazy" decoding="async" src="/api/file/' + encodeURIComponent(pgSlug) + '/page/v' + pgVersion + '/' + item.no + '.webp" draggable="false"><span class="no">' + item.no + '</span></div>' +
       '<div class="ops">' +
       '<button data-op="off" title="显示/隐藏">' + (item.on ? '👁' : '🚫') + '</button>' +
       '<span>' +
@@ -895,7 +1630,7 @@ $('pg-save').addEventListener('click', async () => {
   const btn = $('pg-save');
   btn.disabled = true; btn.textContent = '保存中…';
   try {
-    const d = await API.req('/api/config', { method: 'PUT', json: { pages } });
+    const d = await API.req('/api/config', { method: 'PUT', json: { portfolio_id: pgPfId || curPfId, pages } });
     $('pg-msg').textContent = d.ok ? '已保存 ✓ 共展示 ' + pages.length + ' 页' : d.error || '保存失败';
   } catch (e) { $('pg-msg').textContent = '保存失败'; }
   btn.disabled = false; btn.textContent = '保存页面设置';
@@ -903,6 +1638,19 @@ $('pg-save').addEventListener('click', async () => {
 });
 
 // ---------- 统计 ----------
+let LAST_STATS = null; // 最近一次统计结果（作品集列表加载完成后可回填排行标题）
+
+function renderPfRank() {
+  if (!LAST_STATS) return;
+  const titleMap = {};
+  PF_LIST.forEach((x) => { titleMap[x.slug] = x.title; });
+  const byPf = (LAST_STATS.byPortfolio || []).map((x) => ({
+    k: titleMap[x.k] || (x.k === '(未记录)' ? '历史访问（旧版）' : '/' + x.k),
+    c: x.c,
+  }));
+  rankRender($('rank-portfolio'), byPf);
+}
+
 function rankRender(el, list) {
   el.innerHTML = '';
   if (!list || !list.length) {
@@ -951,10 +1699,10 @@ async function loadStats() {
     if (!d.ok) return;
     const s = d.stats;
     $('stat-cards').innerHTML =
-      '<div class="stat-card"><div class="v">' + (s.total.c || 0) + '</div><div class="k">总访问量</div></div>' +
-      '<div class="stat-card"><div class="v">' + (s.total.u || 0) + '</div><div class="k">独立访客</div></div>' +
-      '<div class="stat-card"><div class="v">' + (s.today.c || 0) + '</div><div class="k">今日访问</div></div>' +
-      '<div class="stat-card"><div class="v">' + (s.week.c || 0) + '</div><div class="k">近 7 天访问</div></div>';
+      '<div class="stat-card"><div class="ico g"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div><div class="v">' + (s.total.c || 0) + '</div><div class="k">总访问量</div></div></div>' +
+      '<div class="stat-card"><div class="ico p"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div><div class="v">' + (s.total.u || 0) + '</div><div class="k">独立访客</div></div></div>' +
+      '<div class="stat-card"><div class="ico o"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><div class="v">' + (s.today.c || 0) + '</div><div class="k">今日访问</div></div></div>' +
+      '<div class="stat-card"><div class="ico b"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div><div class="v">' + (s.week.c || 0) + '</div><div class="k">近 7 天访问</div></div></div>';
 
     const chart = $('chart');
     chart.innerHTML = '';
@@ -981,6 +1729,9 @@ async function loadStats() {
     rankRender($('rank-device'), s.byDevice);
     rankRender($('rank-region'), s.byRegion);
 
+    LAST_STATS = s;
+    renderPfRank();
+
     const list = $('visit-list');
     list.innerHTML = '';
     if (!s.recent || !s.recent.length) {
@@ -991,11 +1742,13 @@ async function loadStats() {
         row.className = 'v-row';
         let region = v.region_cn || '未知';
         region = region.replace(/^(.+)\1$/, '$1');
+        const pfTag = v.slug ? '<span class="v-pf" title="/' + esc(v.slug) + '">' + esc(titleMap[v.slug] || v.slug) + '</span>' : '';
         row.innerHTML =
           '<span class="v-who">' +
           '<span class="v-ip">' + esc(maskIp(v.ip)) + '</span>' +
           '<span class="v-region">（' + esc(region) + '）</span>' +
           '<span class="v-dev">' + esc(v.device || '-') + '</span>' +
+          pfTag +
           '</span>' +
           '<span class="v-time" title="' + esc(fmtTime(v.ts)) + '">' + esc(fmtVisitTime(v.ts)) + '</span>';
         list.appendChild(row);
