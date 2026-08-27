@@ -522,12 +522,14 @@
       $('phone-pop').classList.remove('open');
     }
   });
-  // 滚动时自动收回电话气泡
-  let _scrollTimer;
+  // 滚动时自动收回电话气泡（rAF节流，不阻塞滚动）
+  let _scrollRAF = 0;
   window.addEventListener('scroll', () => {
-    $('phone-pop').classList.remove('open');
-    clearTimeout(_scrollTimer);
-    _scrollTimer = setTimeout(() => {}, 100);
+    if (_scrollRAF) return;
+    _scrollRAF = requestAnimationFrame(() => {
+      _scrollRAF = 0;
+      $('phone-pop').classList.remove('open');
+    });
   }, { passive: true });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {

@@ -419,9 +419,8 @@ function showLogin() {
 function showApp() {
   $('login-view').style.display = 'none';
   $('app-view').style.display = 'block';
-  loadSettings();
+  loadSettingsAndFiles();
   loadStats();
-  loadFiles();
 }
 
 // ---------- 登录 ----------
@@ -514,12 +513,13 @@ $('req-list').addEventListener('click', async (e) => {
   }
 });
 
-// ---------- 内容设置 ----------
-async function loadSettings() {
+// ---------- 内容设置 + 文件信息（合并为单次API调用） ----------
+async function loadSettingsAndFiles() {
   try {
     const d = await API.req('/api/config?fresh=1');
     if (!d.ok) return;
     const c = d.config;
+    // 设置
     $('set-title').value = c.title || '';
     $('set-wm-on').checked = c.wm_enabled;
     $('set-wm-text').value = c.wm_text || '';
@@ -528,6 +528,17 @@ async function loadSettings() {
     $('set-phone').value = c.phone || '';
     $('set-qr-on').checked = c.qr_enabled;
     $('set-wxid').value = c.wx_id || '';
+    // 文件信息
+    if (d.manifest) {
+      const m = d.manifest;
+      $('pdf-info').innerHTML =
+        '当前作品集：<b>v' + esc(m.version) + '</b> · 共 ' + esc(m.count) + ' 页';
+    } else {
+      $('pdf-info').textContent = '尚未上传作品集';
+    }
+    if (d.qr_version > 0) {
+      $('qr-preview').src = '/api/file/qrcode?v=' + d.qr_version;
+    }
   } catch (e) {}
 }
 $('save-settings').addEventListener('click', async () => {
@@ -557,22 +568,7 @@ $('save-settings').addEventListener('click', async () => {
   setTimeout(() => ($('settings-msg').textContent = ''), 2500);
 });
 
-// ---------- 文件信息 ----------
-async function loadFiles() {
-  try {
-    const d = await API.req('/api/config?fresh=1');
-    if (d.ok && d.manifest) {
-      const m = d.manifest;
-      $('pdf-info').innerHTML =
-        '当前作品集：<b>v' + m.version + '</b> · 共 ' + m.count + ' 页';
-    } else {
-      $('pdf-info').textContent = '尚未上传作品集';
-    }
-    if (d.ok && d.qr_version > 0) {
-      $('qr-preview').src = '/api/file/qrcode?v=' + d.qr_version;
-    }
-  } catch (e) {}
-}
+// ---------- 文件信息（已合并到 loadSettingsAndFiles） ----------
 
 // ---------- PDF 上传（流水线模式：渲染一页即上传，3路并发） ----------
 function setP(barEl, pct) {
@@ -680,7 +676,7 @@ $('pdf-upload').addEventListener('click', async () => {
     setP(bar, 100);
     status.textContent = '上传完成 ✓ 共 ' + n + ' 页，前台已自动更新';
     pgState = null;
-    loadFiles();
+    loadSettingsAndFiles();
     $('pdf-file').value = '';
   } catch (e) {
     status.textContent = '上传失败：' + (e.message || e);
@@ -703,7 +699,7 @@ function uploadQr(form) {
       try { d = JSON.parse(xhr.responseText); } catch (e) {}
       if (xhr.status === 401) { showLogin(); resolve(false); return; }
       $('qr-upload-status').textContent = d.ok ? '上传成功 ✓' : d.error || '上传失败';
-      if (d.ok) loadFiles();
+      if (d.ok) loadSettingsAndFiles();
       resolve(d.ok);
     });
     xhr.addEventListener('error', () => {

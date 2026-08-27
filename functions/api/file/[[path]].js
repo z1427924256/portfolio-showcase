@@ -12,37 +12,6 @@ function imgContentType(buf) {
   return 'image/jpeg';
 }
 
-/** 修正缓存命中的图片响应头：旧缓存写入时按 JPEG 打标，WebP 内容需改回正确 Content-Type */
-async function fixCachedImg(res) {
-  const ct = res.headers.get('content-type') || '';
-  if (ct !== 'image/jpeg' || !res.body) return res;
-  const [head, rest] = res.body.tee();
-  const reader = head.getReader();
-  let isWebp = false;
-  try {
-    let got = 0;
-    let combined = new Uint8Array(0);
-    while (got < 12) {
-      const { done, value } = await reader.read();
-      if (done || !value) break;
-      const merged = new Uint8Array(combined.length + value.length);
-      merged.set(combined, 0);
-      merged.set(value, combined.length);
-      combined = merged;
-      got = combined.length;
-    }
-    if (combined.length >= 12 && combined[0] === 0x52 && combined[1] === 0x49 && combined[2] === 0x46 && combined[3] === 0x46
-      && combined[8] === 0x57 && combined[9] === 0x45 && combined[10] === 0x42 && combined[11] === 0x50) {
-      isWebp = true;
-    }
-  } catch (e) {}
-  try { reader.cancel(); } catch (e) {}
-  if (!isWebp) return new Response(rest, { status: res.status, headers: new Headers(res.headers) });
-  const h = new Headers(res.headers);
-  h.set('content-type', 'image/webp');
-  return new Response(rest, { status: res.status, headers: h });
-}
-
 function pdfHeaders(version, total) {
   return {
     'Content-Type': 'application/pdf',
@@ -99,14 +68,15 @@ export async function onRequestGet(context) {
     try {
       cached = await cache.match(request);
     } catch (e) {}
-    if (cached) return fixCachedImg(cached);
+    if (cached) return cached;
 
     const obj = await loadFile(env, `page_v${version}_${index}`);
     if (!obj) return new Response('Not Found', { status: 404, headers: { 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' } });
 
+    const contentType = imgContentType(obj.buf);
     const res = new Response(obj.buf, {
       headers: {
-        'Content-Type': imgContentType(obj.buf),
+        'Content-Type': contentType,
         'Cache-Control': 'public, max-age=31536000, immutable',
         ETag: `"p${version}-${index}"`,
         'X-Content-Type-Options': 'nosniff',

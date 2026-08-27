@@ -47,7 +47,7 @@ export async function onRequestGet(context) {
       qr_version: map.qr_version ? +map.qr_version : 0,
     },
     200,
-    { 'Cache-Control': 'public, max-age=30, s-maxage=30, stale-while-revalidate=600' }
+    { 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600' }
   );
 
   if (!fresh) {
