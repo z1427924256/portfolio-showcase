@@ -65,8 +65,8 @@ export const randHex = (n) =>
 export const randB64 = (n) =>
   btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(n))));
 
-// ---------- 文件存储：R2（主）+ KV（迁移期镜像 / 兜底）----------
-// 读：先 R2 后 KV；写：双写；删：双删。R2 未绑定或未迁移的键自动回退 KV，零停机切换。
+// ---------- 文件存储：R2（唯一存储）----------
+// 读：R2 优先，KV 作可选兜底（未绑定 KV 时自动跳过）；写：R2 为主，KV 双写（如已绑定）；删：双删。
 
 /** 读取文件，返回 { buf } 或 null */
 export async function loadFile(env, key) {

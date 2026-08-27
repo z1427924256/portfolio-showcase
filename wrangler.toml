@@ -7,11 +7,7 @@ binding = "DB"
 database_name = "portfolio-showcase-db"
 database_id = "2b544f1c-fc16-4be3-bf14-2f0680e738b4"
 
-[[kv_namespaces]]
-binding = "FILES"
-id = "2675977dd7384a5397abda8f871f9d06"
-
-# R2 对象存储（页面图片/二维码/PDF 分块，主存储；KV 作迁移期镜像与兜底）
+# R2 对象存储（页面图片/二维码/PDF 分块）
 [[r2_buckets]]
 binding = "R2"
 bucket_name = "portfolio-showcase-files"
