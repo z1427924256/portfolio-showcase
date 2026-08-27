@@ -570,41 +570,10 @@ async function loadFiles() {
   } catch (e) {}
 }
 
-// ---------- PDF 上传（浏览器渲染成图片 → 上传） ----------
+// ---------- PDF 上传（流水线模式：渲染一页即上传，3路并发） ----------
 function setP(barEl, pct) {
   barEl.style.display = 'block';
   barEl.firstElementChild.style.width = Math.round(pct) + '%';
-}
-async function renderPdfToImages(file, onProgress) {
-  await ensurePdfjs();
-  const buf = await file.arrayBuffer();
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
-  const doc = await pdfjsLib.getDocument({ data: buf }).promise;
-  const n = doc.numPages;
-  if (n < 1) throw new Error('PDF 里没有页面');
-  if (n > 500) throw new Error('最多支持 500 页的 PDF');
-  const blobs = [];
-  const dims = [];
-  for (let i = 1; i <= n; i++) {
-    const page = await doc.getPage(i);
-    const vp1 = page.getViewport({ scale: 1 });
-    let scale = Math.min(2000 / vp1.width, Math.sqrt(12e6 / (vp1.width * vp1.height)), 4);
-    if (scale < 0.05) scale = 0.05;
-    const vp = page.getViewport({ scale });
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.floor(vp.width);
-    canvas.height = Math.floor(vp.height);
-    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-    const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.95));
-    if (!blob) throw new Error('第 ' + i + ' 页渲染失败');
-    if (blob.size > 8 * 1024 * 1024) throw new Error('第 ' + i + ' 页图片过大，请换更小的 PDF');
-    blobs.push(blob);
-    dims.push({ w: canvas.width, h: canvas.height });
-    canvas.width = 0; canvas.height = 0;
-    onProgress && onProgress(i, n);
-    await new Promise((r) => setTimeout(r, 0));
-  }
-  return { blobs, dims, count: n };
 }
 $('pdf-pick').addEventListener('click', () => $('pdf-file').click());
 $('pdf-file').addEventListener('change', () => {
@@ -619,33 +588,93 @@ $('pdf-upload').addEventListener('click', async () => {
   const bar = $('pdf-progress');
   btn.disabled = true; btn.textContent = '处理中…';
   try {
+    // 1. 解析 PDF
     setP(bar, 2); status.textContent = '正在解析 PDF…';
-    const { blobs, dims, count } = await renderPdfToImages(f, (i, n) => {
-      setP(bar, 2 + (i / n) * 55);
-      status.textContent = '正在渲染第 ' + i + '/' + n + ' 页…';
-    });
-    setP(bar, 60); status.textContent = '正在上传…';
+    await ensurePdfjs();
+    const buf = await f.arrayBuffer();
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdf.worker.min.js';
+    const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+    const n = doc.numPages;
+    if (n < 1) throw new Error('PDF 里没有页面');
+    if (n > 500) throw new Error('最多支持 500 页的 PDF');
+
+    // 2. 预约版本号
+    setP(bar, 4); status.textContent = '正在准备上传…';
     const beginFd = new FormData();
     beginFd.append('type', 'pages_begin');
     const begin = await postForm(beginFd);
     const version = begin.version;
-    for (let i = 0; i < blobs.length; i++) {
-      const fd = new FormData();
-      fd.append('type', 'page_image');
-      fd.append('version', String(version));
-      fd.append('index', String(i + 1));
-      fd.append('file', blobs[i], (i + 1) + '.jpg');
-      await postForm(fd);
-      setP(bar, 60 + ((i + 1) / blobs.length) * 35);
-      status.textContent = '正在上传 ' + (i + 1) + '/' + blobs.length + ' 页…';
+
+    // 3. 流水线：渲染一页 → 立即上传 → 继续渲染下一页
+    //    3路并发上传，内存中最多只持有 3 个 blob
+    const CONCURRENCY = 3;
+    const dims = new Array(n);
+    let rendered = 0, uploaded = 0;
+    const pending = new Set();
+
+    const updateProgress = () => {
+      const pct = 5 + (rendered / n) * 35 + (uploaded / n) * 55;
+      setP(bar, Math.min(95, pct));
+      const tail = rendered < n ? ' · 渲染 ' + rendered + '/' + n : '';
+      status.textContent = '正在上传 ' + uploaded + '/' + n + ' 页' + tail;
+    };
+
+    for (let i = 1; i <= n; i++) {
+      // 并发数达上限时，等待最快的那个上传完成
+      while (pending.size >= CONCURRENCY) {
+        await Promise.race(pending);
+        await new Promise((r) => setTimeout(r, 0));
+      }
+
+      // 渲染第 i 页
+      const page = await doc.getPage(i);
+      const vp1 = page.getViewport({ scale: 1 });
+      let scale = Math.min(2000 / vp1.width, Math.sqrt(12e6 / (vp1.width * vp1.height)), 4);
+      if (scale < 0.05) scale = 0.05;
+      const vp = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.floor(vp.width);
+      canvas.height = Math.floor(vp.height);
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.88));
+      if (!blob) throw new Error('第 ' + i + ' 页渲染失败');
+      if (blob.size > 8 * 1024 * 1024) throw new Error('第 ' + i + ' 页图片过大');
+      dims[i - 1] = { w: canvas.width, h: canvas.height };
+      canvas.width = 0; canvas.height = 0;
+      rendered++;
+
+      // 立即开始上传（不等待）
+      const idx = i;
+      const uploadP = (async () => {
+        const fd = new FormData();
+        fd.append('type', 'page_image');
+        fd.append('version', String(version));
+        fd.append('index', String(idx));
+        fd.append('file', blob, idx + '.jpg');
+        await postForm(fd);
+        uploaded++;
+        updateProgress();
+      })();
+      uploadP.finally(() => pending.delete(uploadP));
+      pending.add(uploadP);
+
+      updateProgress();
+      await new Promise((r) => setTimeout(r, 0));
     }
+
+    // 等待所有上传完成
+    await Promise.all(pending);
+    setP(bar, 95); status.textContent = '正在完成 ' + uploaded + '/' + n + ' 页…';
+
+    // 4. 上传 manifest
     setP(bar, 97); status.textContent = '正在完成…';
     const fd = new FormData();
     fd.append('type', 'pages_manifest');
-    fd.append('manifest', JSON.stringify({ version, count, pages: dims }));
+    fd.append('manifest', JSON.stringify({ version, count: n, pages: dims }));
     await postForm(fd);
+
     setP(bar, 100);
-    status.textContent = '上传完成 ✓ 前台已自动使用新内容';
+    status.textContent = '上传完成 ✓ 共 ' + n + ' 页，前台已自动更新';
     pgState = null;
     loadFiles();
     $('pdf-file').value = '';
