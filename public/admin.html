@@ -380,6 +380,16 @@ async function ensurePdfjs() {
     document.head.appendChild(s);
   });
 }
+
+// jSquash WebP 编码器（基于 Google libwebp 的 WebAssembly 移植）
+// 同等画质下比 JPEG 小 25-35%，视觉无损压缩
+let _webpEncoder = null;
+async function ensureWebpEncoder() {
+  if (_webpEncoder) return _webpEncoder;
+  const mod = await import('https://esm.sh/@jsquash/webp@2.2.0');
+  _webpEncoder = mod.encode;
+  return _webpEncoder;
+}
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s || '').replace(/[&<>"']/g, (m) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
@@ -605,6 +615,9 @@ $('pdf-upload').addEventListener('click', async () => {
     const begin = await postForm(beginFd);
     const version = begin.version;
 
+    // 加载 WebP 编码器（WASM，首次约 200ms）
+    const webpEncode = await ensureWebpEncoder();
+
     // 3. 流水线：渲染一页 → 立即上传 → 继续渲染下一页
     //    3路并发上传，内存中最多只持有 3 个 blob
     const CONCURRENCY = 3;
@@ -635,9 +648,13 @@ $('pdf-upload').addEventListener('click', async () => {
       const canvas = document.createElement('canvas');
       canvas.width = Math.floor(vp.width);
       canvas.height = Math.floor(vp.height);
-      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-      const blob = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.72));
-      if (!blob) throw new Error('第 ' + i + ' 页渲染失败');
+      const ctx = canvas.getContext('2d');
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      // jSquash WebP 编码（libwebp WASM）：质量 82 视觉无损，比 JPEG 0.72 文件小 25-35%
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const webpBuf = await webpEncode(imageData, { quality: 82 });
+      const blob = new Blob([webpBuf], { type: 'image/webp' });
+      if (!blob || blob.size === 0) throw new Error('第 ' + i + ' 页渲染失败');
       if (blob.size > 8 * 1024 * 1024) throw new Error('第 ' + i + ' 页图片过大');
       dims[i - 1] = { w: canvas.width, h: canvas.height };
       canvas.width = 0; canvas.height = 0;
@@ -650,7 +667,7 @@ $('pdf-upload').addEventListener('click', async () => {
         fd.append('type', 'page_image');
         fd.append('version', String(version));
         fd.append('index', String(idx));
-        fd.append('file', blob, idx + '.jpg');
+        fd.append('file', blob, idx + '.webp');
         await postForm(fd);
         uploaded++;
         updateProgress();
@@ -758,7 +775,7 @@ function renderPgGrid() {
     el.className = 'pg-item' + (item.on ? '' : ' off');
     el.dataset.idx = idx;
     el.innerHTML =
-      '<div class="thumb"><img loading="lazy" decoding="async" src="/api/file/page/v' + pgVersion + '/' + item.no + '.jpg" draggable="false"><span class="no">' + item.no + '</span></div>' +
+      '<div class="thumb"><img loading="lazy" decoding="async" src="/api/file/page/v' + pgVersion + '/' + item.no + '.webp" draggable="false"><span class="no">' + item.no + '</span></div>' +
       '<div class="ops">' +
       '<button data-op="off" title="显示/隐藏">' + (item.on ? '👁' : '🚫') + '</button>' +
       '<span>' +

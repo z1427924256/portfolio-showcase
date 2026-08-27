@@ -586,13 +586,13 @@
         img.dataset.r = '1';
         setTimeout(() => { img.src = img.src; }, 1200);
       };
-      img.src = '/api/file/page/v' + mf.version + '/' + n + '.jpg';
+      img.src = '/api/file/page/v' + mf.version + '/' + n + '.webp';
       // 预加载下一页（低优先级，不阻塞当前页）
       if (i === 0 && list[1]) {
         const preload = new Image();
         preload.fetchPriority = 'low';
         preload.loading = 'lazy';
-        preload.src = '/api/file/page/v' + mf.version + '/' + list[1] + '.jpg';
+        preload.src = '/api/file/page/v' + mf.version + '/' + list[1] + '.webp';
       }
       el.appendChild(img);
       container.appendChild(el);
@@ -611,7 +611,7 @@
   };
   const lbEl = $('lb'), lbStage = $('lb-stage'), lbImg = $('lb-img'), lbSpin = $('lb-spin');
 
-  const lbUrl = (i) => '/api/file/page/v' + lbVer + '/' + lbList[i] + '.jpg';
+  const lbUrl = (i) => '/api/file/page/v' + lbVer + '/' + lbList[i] + '.webp';
 
   function lbApply() {
     if (L.raf) return;

@@ -49,6 +49,7 @@ async function readRange(env, start, end) {
 }
 
 // GET /api/file/page/v{version}/{index}.jpg —— 页面图片（边缘缓存 + 浏览器长缓存）
+// GET /api/file/page/v{version}/{index}.webp —— 页面图片（同上，WebP 格式）
 // GET /api/file/qrcode?v= —— 二维码
 // GET /api/file/pdf/v{v}/{size}.pdf —— 旧版 PDF（仅兜底）
 export async function onRequestGet(context) {
@@ -56,8 +57,8 @@ export async function onRequestGet(context) {
   const path = (params.path || []).join('/');
   const cache = caches.default;
 
-  // 页面图片
-  const pm = path.match(/^page\/v(\d{1,4})\/(\d{1,3})\.jpg$/);
+  // 页面图片（同时兼容 .jpg 和 .webp 两种 URL，实际格式由 R2 中的魔数决定）
+  const pm = path.match(/^page\/v(\d{1,4})\/(\d{1,3})\.(jpg|webp)$/);
   if (pm) {
     const version = +pm[1];
     const index = +pm[2];
